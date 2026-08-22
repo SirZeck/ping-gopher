@@ -9,6 +9,8 @@
 
 **PingGopher** is a standalone, full-stack **Uptime & Synthetic Monitoring SaaS** built with Go and powered by the distributed task engine `gopher-queue`. Engineered with a **Modular Monolith ("Deploy Any Role")** architecture, PingGopher can run as an all-in-one process or scale horizontally by deploying dedicated API, Worker, and Scheduler roles from a single binary.
 
+![PingGopher Dashboard Preview](assets/dashboard.png)
+
 ---
 
 ## 📂 Project Structure
