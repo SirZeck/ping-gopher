@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PingGopher - Standalone Uptime & Synthetic Monitoring SaaS powered by gopher-queue">
+  <title>PingGopher — Uptime & Synthetic Monitoring Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="logo">
+      <span>🐹📡</span>
+      <span>PingGopher</span>
+    </div>
+    <div class="nav-actions">
+      <span id="user-email-display" class="hidden" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+      <button id="auth-btn" class="btn btn-primary">Sign In / Sign Up</button>
+      <button id="logout-btn" class="btn btn-secondary hidden">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="container">
+
+    <!-- Auth View (Shown when not authenticated) -->
+    <div id="auth-view" class="glass-panel" style="max-width: 440px; margin: 3rem auto; padding: 2.5rem;">
+      <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-glass); margin-bottom: 1.5rem; padding-bottom: 0.75rem;">
+        <button id="tab-login" class="btn btn-secondary" style="flex: 1;">Login</button>
+        <button id="tab-signup" class="btn btn-secondary" style="flex: 1;">Sign Up</button>
+      </div>
+
+      <form id="auth-form">
+        <div class="form-group">
+          <label for="auth-email">Email Address</label>
+          <input type="email" id="auth-email" class="form-control" placeholder="user@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" class="form-control" placeholder="••••••••" required>
+        </div>
+        <div id="auth-error" class="hidden" style="color: var(--rose); font-size: 0.85rem; margin-bottom: 1rem;"></div>
+        <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%;">Sign In</button>
+      </form>
+    </div>
+
+    <!-- Dashboard View (Shown when authenticated) -->
+    <div id="dashboard-view" class="hidden">
+      
+      <!-- Stats Summary -->
+      <div class="stats-grid">
+        <div class="glass-panel stat-card">
+          <div class="stat-title">System SLA Uptime</div>
+          <div class="stat-value" id="stat-sla" style="color: var(--emerald);">99.9%</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">Total Monitors</div>
+          <div class="stat-value" id="stat-total">0</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">Operational (UP)</div>
+          <div class="stat-value" id="stat-up" style="color: var(--emerald);">0</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">Outages (DOWN)</div>
+          <div class="stat-value" id="stat-down" style="color: var(--rose);">0</div>
+        </div>
+      </div>
+
+      <!-- Monitor Targets Header -->
+      <div class="section-header">
+        <h2 class="section-title">Monitored Targets</h2>
+        <button id="open-add-modal-btn" class="btn btn-primary">+ Add New Target</button>
+      </div>
+
+      <!-- Monitor List Grid -->
+      <div id="monitor-grid" class="monitor-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Add Monitor Modal -->
+  <div id="add-modal" class="modal-overlay">
+    <div class="glass-panel modal-content">
+      <div class="section-header" style="margin-bottom: 1rem;">
+        <h3 class="section-title">Add Target Monitor</h3>
+        <button id="close-add-modal-btn" class="btn btn-secondary" style="padding: 0.2rem 0.6rem;">✕</button>
+      </div>
+
+      <form id="add-monitor-form">
+        <div class="form-group">
+          <label for="monitor-name">Target Name</label>
+          <input type="text" id="monitor-name" class="form-control" placeholder="e.g. Production API" required>
+        </div>
+        <div class="form-group">
+          <label for="monitor-url">Target URL</label>
+          <input type="url" id="monitor-url" class="form-control" placeholder="https://api.example.com/health" required>
+        </div>
+        <div class="form-group">
+          <label for="monitor-interval">Check Interval (Seconds)</label>
+          <input type="number" id="monitor-interval" class="form-control" value="60" min="10" max="86400" required>
+        </div>
+        <div id="add-error" class="hidden" style="color: var(--rose); font-size: 0.85rem; margin-bottom: 1rem;"></div>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+          <button type="button" id="cancel-add-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Monitor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Telemetry & Logs Modal -->
+  <div id="telemetry-modal" class="modal-overlay">
+    <div class="glass-panel modal-content" style="max-width: 650px;">
+      <div class="section-header" style="margin-bottom: 1rem;">
+        <h3 class="section-title" id="telemetry-modal-title">Monitor Execution Logs</h3>
+        <button id="close-telemetry-modal-btn" class="btn btn-secondary" style="padding: 0.2rem 0.6rem;">✕</button>
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Probe Response Latency History</div>
+        <div id="telemetry-timeline" class="log-timeline"></div>
+      </div>
+
+      <div style="max-height: 250px; overflow-y: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-glass); text-align: left; color: var(--text-muted);">
+              <th style="padding: 0.5rem;">Status</th>
+              <th style="padding: 0.5rem;">Latency</th>
+              <th style="padding: 0.5rem;">Checked At</th>
+            </tr>
+          </thead>
+          <tbody id="telemetry-logs-tbody">
+            <!-- Log rows rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
