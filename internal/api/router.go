@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+
+	"github.com/pinggopher/ping-gopher/web"
 )
 
 // SetupRouter initializes the HTTP router and registers all public and authenticated REST endpoints.
@@ -31,6 +33,9 @@ func (h *APIHandler) SetupRouter() http.Handler {
 	// 4. Telemetry logs & incident history (JWT Authenticated)
 	mux.HandleFunc("GET /v1/monitors/{id}/logs", AuthMiddleware(jwtSecret, h.GetMonitorLogsHandler))
 	mux.HandleFunc("GET /v1/monitors/{id}/incidents", AuthMiddleware(jwtSecret, h.GetMonitorIncidentsHandler))
+
+	// 5. Embedded Web Dashboard Static Handler
+	mux.Handle("GET /", web.StaticHandler())
 
 	// Wrap in CORS middleware
 	return CORSMiddleware(mux)
