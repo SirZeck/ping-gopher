@@ -69,17 +69,33 @@ Run any node type using runtime CLI flags or environment variables:
 
 ## 🚀 Quickstart
 
-### Prerequisites
+### 1. Run via Docker Compose (Recommended)
+Launch PingGopher and Redis broker with a single command:
+
+```bash
+docker compose up -d --build
+```
+
+Verify application status:
+```bash
+docker compose logs -f pinggopher
+```
+
+---
+
+### 2. Build & Run Locally
+
+#### Prerequisites
 - **Go 1.22+**
 - **Redis 7.0+** running on `localhost:6379` (required for `gopher-queue` worker pool)
 
-### 1. Build the Binary
+#### Build Binary
 ```bash
 make build
 # Produces bin/pinggopher.exe
 ```
 
-### 2. Run All-in-One Node
+#### Run All-in-One Node
 ```bash
 make run-all
 # Or run manually:

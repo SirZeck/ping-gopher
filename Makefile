@@ -1,4 +1,4 @@
-.PHONY: build run-all run-api run-worker run-scheduler test clean
+.PHONY: build run-all run-api run-worker run-scheduler test docker-up docker-down docker-build clean
 
 BINARY_NAME=pinggopher.exe
 
@@ -19,6 +19,15 @@ run-scheduler: build
 
 test:
 	go test -v ./...
+
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down
 
 clean:
 	rm -rf bin/ pinggopher.db
