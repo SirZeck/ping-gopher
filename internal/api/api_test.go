@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -38,6 +39,44 @@ func setupTestAPI(t *testing.T) (*httptest.Server, *APIHandler, func()) {
 	}
 
 	return ts, handler, cleanup
+}
+
+func TestStaticAssets(t *testing.T) {
+	ts, _, cleanup := setupTestAPI(t)
+	defer cleanup()
+
+	// Test GET /
+	resp, err := http.Get(ts.URL + "/")
+	if err != nil {
+		t.Fatalf("GET / failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected 200 OK for GET /, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// Test GET /style.css
+	resp, err = http.Get(ts.URL + "/style.css")
+	if err != nil {
+		t.Fatalf("GET /style.css failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected 200 OK for GET /style.css, got %d", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	t.Logf("GET /style.css Content-Type: %s, Body length: %d", resp.Header.Get("Content-Type"), len(body))
+	resp.Body.Close()
+
+	// Test GET /app.js
+	resp, err = http.Get(ts.URL + "/app.js")
+	if err != nil {
+		t.Fatalf("GET /app.js failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected 200 OK for GET /app.js, got %d", resp.StatusCode)
+	}
+	t.Logf("GET /app.js Content-Type: %s", resp.Header.Get("Content-Type"))
+	resp.Body.Close()
 }
 
 func TestSignupAndLoginAPI(t *testing.T) {
