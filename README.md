@@ -86,33 +86,6 @@ Run any node type using runtime CLI flags or environment variables:
 
 ---
 
-## 📅 Roadmap & Development Phases
-
-- [x] **Phase 1: Project Setup & Database Foundations**
-  - Modular Monolith architecture & "Deploy Any Role" binary launcher.
-  - Multi-tenant GORM domain models (`User`, `Monitor`, `PingLog`, `Incident`).
-  - Pure Go CGO-free SQLite driver & PostgreSQL compatibility.
-  - Multi-stage Dockerfile & `docker-compose` orchestration.
-- [x] **Phase 2: Core Ping & Worker Engine**
-  - `check:http_uptime` and `check:ssl_cert` worker handlers.
-  - `gopher-queue` client & background scheduler integration.
-- [x] **Phase 3: REST API & Authentication**
-  - JWT authentication (`/v1/auth/signup`, `/v1/auth/login`).
-  - Monitor CRUD endpoints (`/v1/monitors`).
-  - Telemetry logs & incident history endpoints (`/v1/monitors/{id}/logs`, `/v1/monitors/{id}/incidents`).
-- [x] **Phase 4: Web Application Dashboard**
-  - Glassmorphic dark mode UI (`backdrop-filter: blur(16px)`).
-  - Single-Page Application (`web/index.html`, `web/app.js`, `web/style.css`).
-  - Real-time SLA metrics, live status cards, latency history bar charts, and monitor management.
-  - Zero-dependency Go static file embedding (`web/embed.go`).
-- [x] **Phase 5: Alerting Pipeline & Hosted Public Status Pages**
-  - Automated JSON Webhook notification dispatcher (`internal/notifier`).
-  - Public status page REST endpoint (`GET /v1/status/public`).
-  - Glassmorphic hosted public status page UI (`web/status.html`, `web/status.js`).
-  - Complete end-to-end testing & production build.
-
----
-
 ## 🚀 Quickstart
 
 ### 1. Run via Docker Compose (Recommended)
