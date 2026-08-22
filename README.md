@@ -93,12 +93,13 @@ Run any node type using runtime CLI flags or environment variables:
   - Multi-tenant GORM domain models (`User`, `Monitor`, `PingLog`, `Incident`).
   - Pure Go CGO-free SQLite driver & PostgreSQL compatibility.
   - Multi-stage Dockerfile & `docker-compose` orchestration.
-- [ ] **Phase 2: Core Ping & Worker Engine**
+- [x] **Phase 2: Core Ping & Worker Engine**
   - `check:http_uptime` and `check:ssl_cert` worker handlers.
   - `gopher-queue` client & background scheduler integration.
-- [ ] **Phase 3: REST API & Authentication**
+- [x] **Phase 3: REST API & Authentication**
   - JWT authentication (`/v1/auth/signup`, `/v1/auth/login`).
   - Monitor CRUD endpoints (`/v1/monitors`).
+  - Telemetry logs & incident history endpoints (`/v1/monitors/{id}/logs`, `/v1/monitors/{id}/incidents`).
 - [ ] **Phase 4: Web Application Dashboard**
   - Real-time SLA charts, response latency graphs, and monitor controls.
 - [ ] **Phase 5: Alerting & Public Status Pages**
