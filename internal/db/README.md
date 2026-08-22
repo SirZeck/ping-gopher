@@ -144,7 +144,15 @@ func (m *Monitor) BeforeCreate(tx *gorm.DB) error {
 
 ## 🧪 Testing & Migrations
 
-Run database model unit tests with race detection:
+### Automated Unit Test Suite (`db_test.go`)
+
+We use an isolated SQLite test database (`test_pinggopher.db`) with automatic teardown (`os.Remove`) to verify schema integrity and relational operations:
+
+| Test Method | Test Focus & Verification |
+| :--- | :--- |
+| **`TestDatabaseInitializationAndModels`** | - Verifies connection initialization via `InitDB()`.<br>- Tests GORM schema auto-migration across `User`, `Monitor`, `PingLog`, and `Incident`.<br>- Verifies `BeforeCreate` GORM lifecycle hooks auto-generate non-nil UUIDs.<br>- Validates relational foreign key constraints (`ON DELETE CASCADE`).<br>- Verifies nested relational preloading (`Preload("Monitors.PingLogs")` and `Preload("Monitors.Incidents")`). |
+
+### Running Database Unit Tests
 
 ```bash
 go test -v ./internal/db
