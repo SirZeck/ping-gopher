@@ -22,9 +22,20 @@ Connects task payload handlers to database updates:
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing & Verification
 
-Run probe unit tests:
+### Automated Unit Test Suite (`probe_test.go`)
+
+We use Go's standard `net/http/httptest` package to launch isolated in-memory HTTP mock servers and test probe handlers without external network dependencies:
+
+| Test Method | Test Focus & Verification |
+| :--- | :--- |
+| **`TestExecuteHTTPProbeSuccess`** | - Launches a mock HTTP server returning `200 OK`.<br>- Verifies `ExecuteHTTPProbe` measures non-zero latency and marks `IsUp = true`. |
+| **`TestExecuteHTTPProbeFailure`** | - Launches a mock HTTP server returning `500 Internal Server Error`.<br>- Verifies `ExecuteHTTPProbe` records status `500` and marks `IsUp = false` with cause diagnostics. |
+| **`TestWorkerEngineProcessHTTPCheck`** | - End-to-end integration test connecting `WorkerEngine` to a mock HTTP server and isolated test database (`test_worker.db`).<br>- Verifies JSON `CheckPayload` parsing, probe execution, `PingLog` record creation, and `Monitor.Status` state transition (`PAUSED` -> `UP`). |
+
+### Running Worker Unit Tests
+
 ```bash
 go test -v ./internal/worker
 ```
