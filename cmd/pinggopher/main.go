@@ -13,7 +13,6 @@ import (
 	"github.com/pinggopher/ping-gopher/internal/db"
 	"github.com/pinggopher/ping-gopher/internal/scheduler"
 	"github.com/pinggopher/ping-gopher/internal/worker"
-	"gorm.io/gorm"
 )
 
 const banner = `
