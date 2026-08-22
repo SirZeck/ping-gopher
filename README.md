@@ -100,8 +100,11 @@ Run any node type using runtime CLI flags or environment variables:
   - JWT authentication (`/v1/auth/signup`, `/v1/auth/login`).
   - Monitor CRUD endpoints (`/v1/monitors`).
   - Telemetry logs & incident history endpoints (`/v1/monitors/{id}/logs`, `/v1/monitors/{id}/incidents`).
-- [ ] **Phase 4: Web Application Dashboard**
-  - Real-time SLA charts, response latency graphs, and monitor controls.
+- [x] **Phase 4: Web Application Dashboard**
+  - Glassmorphic dark mode UI (`backdrop-filter: blur(16px)`).
+  - Single-Page Application (`web/index.html`, `web/app.js`, `web/style.css`).
+  - Real-time SLA metrics, live status cards, latency history bar charts, and monitor management.
+  - Zero-dependency Go static file embedding (`web/embed.go`).
 - [ ] **Phase 5: Alerting & Public Status Pages**
   - Email/webhook notification dispatchers & hosted public status pages (`/status/:slug`).
 
