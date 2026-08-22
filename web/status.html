@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PingGopher Public Status Page - Real-time system operational status">
+  <title>System Status — PingGopher</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span>🐹📡</span>
+      <span>PingGopher Status</span>
+    </div>
+    <div class="nav-actions">
+      <a href="/" class="btn btn-secondary">Go to Console</a>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <main class="container" style="max-width: 800px;">
+
+    <!-- System Status Banner -->
+    <div id="status-banner" class="glass-panel" style="padding: 2rem; margin-bottom: 2rem; text-align: center;">
+      <div id="banner-pulse" class="pulse-dot" style="width: 12px; height: 12px; margin: 0 auto 0.75rem;"></div>
+      <h1 id="banner-title" style="font-size: 1.75rem; font-weight: 700;">Loading System Status...</h1>
+      <div id="banner-subtitle" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem;">Checking telemetry services...</div>
+    </div>
+
+    <!-- Monitored Components -->
+    <div class="section-header">
+      <h2 class="section-title">Component Services</h2>
+    </div>
+
+    <div id="status-components-list" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 3rem;">
+      <!-- Dynamic component rows -->
+    </div>
+
+    <!-- Active Outage Incidents -->
+    <div class="section-header">
+      <h2 class="section-title">Active Outage Incidents</h2>
+    </div>
+
+    <div id="status-incidents-list">
+      <!-- Dynamic incident rows -->
+    </div>
+
+  </main>
+
+  <script src="/status.js"></script>
+</body>
+</html>
