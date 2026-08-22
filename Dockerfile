@@ -3,6 +3,8 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
+ENV GOTOOLCHAIN=auto
+
 # Install git and ca-certificates
 RUN apk add --no-cache git ca-certificates
 
