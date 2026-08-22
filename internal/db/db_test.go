@@ -15,6 +15,9 @@ func TestDatabaseInitializationAndModels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to initialize DB: %v", err)
 	}
+	if sqlDB, err := database.DB(); err == nil {
+		defer sqlDB.Close()
+	}
 
 	user := User{
 		Email:        "admin@pinggopher.io",

@@ -19,6 +19,9 @@ func TestSchedulerRunCheckCycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to init DB: %v", err)
 	}
+	if sqlDB, err := database.DB(); err == nil {
+		defer sqlDB.Close()
+	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -49,7 +52,6 @@ func TestSchedulerRunCheckCycle(t *testing.T) {
 		t.Fatalf("Scheduler RunOnce failed: %v", err)
 	}
 
-	// Wait briefly for async worker goroutine execution
 	time.Sleep(300 * time.Millisecond)
 
 	var logs []db.PingLog

@@ -50,6 +50,9 @@ func TestWorkerEngineProcessHTTPCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to init DB: %v", err)
 	}
+	if sqlDB, err := database.DB(); err == nil {
+		defer sqlDB.Close()
+	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

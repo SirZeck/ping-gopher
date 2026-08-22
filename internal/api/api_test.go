@@ -32,6 +32,9 @@ func setupTestAPI(t *testing.T) (*httptest.Server, *APIHandler, func()) {
 
 	cleanup := func() {
 		ts.Close()
+		if sqlDB, err := database.DB(); err == nil {
+			sqlDB.Close()
+		}
 	}
 
 	return ts, handler, cleanup
