@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/pinggopher/ping-gopher/internal/api"
 	"github.com/pinggopher/ping-gopher/internal/config"
 	"github.com/pinggopher/ping-gopher/internal/db"
 	"github.com/pinggopher/ping-gopher/internal/scheduler"
@@ -37,15 +39,16 @@ func main() {
 
 	workerEngine := worker.NewWorkerEngine(database)
 	sched := scheduler.NewScheduler(database, workerEngine)
+	apiHandler := api.NewAPIHandler(database, cfg)
 
 	// Boot active role modules
 	switch cfg.Role {
 	case "all":
-		startAPIRole(cfg, database)
+		go startAPIRole(cfg, apiHandler)
 		startWorkerRole(cfg, workerEngine)
 		startSchedulerRole(cfg, sched)
 	case "api":
-		startAPIRole(cfg, database)
+		startAPIRole(cfg, apiHandler)
 	case "worker":
 		startWorkerRole(cfg, workerEngine)
 	case "scheduler":
@@ -67,8 +70,21 @@ func main() {
 	fmt.Println("[INFO] PingGopher stopped cleanly.")
 }
 
-func startAPIRole(cfg *config.Config, database *gorm.DB) {
-	fmt.Printf("[ROLE: API] Starting REST API Server on port %s...\n", cfg.Port)
+func startAPIRole(cfg *config.Config, handler *api.APIHandler) {
+	addr := fmt.Sprintf(":%s", cfg.Port)
+	fmt.Printf("[ROLE: API] Starting REST API Server on %s...\n", addr)
+
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      handler.SetupRouter(),
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		fmt.Printf("[FATAL] API Server failed: %v\n", err)
+	}
 }
 
 func startWorkerRole(cfg *config.Config, engine *worker.WorkerEngine) {
