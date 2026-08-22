@@ -22,7 +22,10 @@ func (h *APIHandler) SetupRouter() http.Handler {
 	mux.HandleFunc("POST /v1/auth/signup", h.SignupHandler)
 	mux.HandleFunc("POST /v1/auth/login", h.LoginHandler)
 
-	// 3. Monitor management endpoints (JWT Authenticated)
+	// 3. Public Status Page Data Endpoint
+	mux.HandleFunc("GET /v1/status/public", h.PublicStatusHandler)
+
+	// 4. Monitor management endpoints (JWT Authenticated)
 	jwtSecret := h.Config.JWTSecret
 	mux.HandleFunc("POST /v1/monitors", AuthMiddleware(jwtSecret, h.CreateMonitorHandler))
 	mux.HandleFunc("GET /v1/monitors", AuthMiddleware(jwtSecret, h.ListMonitorsHandler))
@@ -30,11 +33,11 @@ func (h *APIHandler) SetupRouter() http.Handler {
 	mux.HandleFunc("PUT /v1/monitors/{id}", AuthMiddleware(jwtSecret, h.UpdateMonitorHandler))
 	mux.HandleFunc("DELETE /v1/monitors/{id}", AuthMiddleware(jwtSecret, h.DeleteMonitorHandler))
 
-	// 4. Telemetry logs & incident history (JWT Authenticated)
+	// 5. Telemetry logs & incident history (JWT Authenticated)
 	mux.HandleFunc("GET /v1/monitors/{id}/logs", AuthMiddleware(jwtSecret, h.GetMonitorLogsHandler))
 	mux.HandleFunc("GET /v1/monitors/{id}/incidents", AuthMiddleware(jwtSecret, h.GetMonitorIncidentsHandler))
 
-	// 5. Embedded Web Dashboard Static Handler
+	// 6. Embedded Web Dashboard Static Handler
 	mux.Handle("GET /", web.StaticHandler())
 
 	// Wrap in CORS middleware
