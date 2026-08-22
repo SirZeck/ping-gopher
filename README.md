@@ -2,7 +2,7 @@
 
 > **Modern, High-Performance Uptime & Synthetic Monitoring SaaS powered by [`gopher-queue`](https://github.com/SirZeck/gopher-queue)**
 
-[![CI](https://github.com/pinggopher/ping-gopher/actions/workflows/ci.yml/badge.svg)](https://github.com/pinggopher/ping-gopher/actions)
+[![CI](https://github.com/SirZeck/ping-gopher/actions/workflows/ci.yml/badge.svg?style=for-the-badge)](https://github.com/SirZeck/ping-gopher/actions)
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=for-the-badge&logo=go)](https://golang.org)
 [![gopher-queue](https://img.shields.io/badge/Engine-gopher--queue_v1.0.0-FF6B6B?style=for-the-badge)](https://github.com/SirZeck/gopher-queue)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
