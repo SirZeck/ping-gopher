@@ -105,8 +105,11 @@ Run any node type using runtime CLI flags or environment variables:
   - Single-Page Application (`web/index.html`, `web/app.js`, `web/style.css`).
   - Real-time SLA metrics, live status cards, latency history bar charts, and monitor management.
   - Zero-dependency Go static file embedding (`web/embed.go`).
-- [ ] **Phase 5: Alerting & Public Status Pages**
-  - Email/webhook notification dispatchers & hosted public status pages (`/status/:slug`).
+- [x] **Phase 5: Alerting Pipeline & Hosted Public Status Pages**
+  - Automated JSON Webhook notification dispatcher (`internal/notifier`).
+  - Public status page REST endpoint (`GET /v1/status/public`).
+  - Glassmorphic hosted public status page UI (`web/status.html`, `web/status.js`).
+  - Complete end-to-end testing & production build.
 
 ---
 
