@@ -19,15 +19,23 @@
 ping-gopher/
 ├── .github/workflows/    # Automated CI/CD build & test workflows
 ├── .agents/              # Workspace rules & agent instructions
+├── assets/               # Repository preview screenshots & media assets
+├── bin/                  # Pre-compiled cross-platform static binaries
 ├── cmd/
 │   └── pinggopher/       # Main binary entrypoint & multi-role launcher
 ├── internal/
+│   ├── api/              # REST API handlers, router & middleware
+│   ├── auth/             # Password security (Bcrypt) & JWT token engine
 │   ├── config/           # Environment variables & CLI flags parser
-│   └── db/               # GORM database layer, models, ERD & migrations
+│   ├── db/               # GORM database layer, models & migrations
+│   ├── notifier/         # Webhook & multi-channel alert pipeline
+│   ├── scheduler/        # Background monitor check promoter loop
+│   └── worker/           # Synthetic probe execution engine (HTTP/SSL)
+├── web/                  # Glassmorphic SPA frontend & Go static embedder
 ├── Dockerfile            # Multi-stage production container build
 ├── docker-compose.yml    # Multi-container orchestration (PingGopher + Redis)
 ├── Makefile              # Development build & execution shortcuts
-└── README.md
+└── README.md             # Master project documentation
 ```
 
 ---
