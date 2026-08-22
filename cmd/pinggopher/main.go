@@ -5,9 +5,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/pinggopher/ping-gopher/internal/config"
 	"github.com/pinggopher/ping-gopher/internal/db"
+	"github.com/pinggopher/ping-gopher/internal/scheduler"
+	"github.com/pinggopher/ping-gopher/internal/worker"
+	"gorm.io/gorm"
 )
 
 const banner = `
@@ -31,18 +35,21 @@ func main() {
 	}
 	fmt.Println("[SUCCESS] Database initialized and GORM models auto-migrated successfully.")
 
+	workerEngine := worker.NewWorkerEngine(database)
+	sched := scheduler.NewScheduler(database, workerEngine)
+
 	// Boot active role modules
 	switch cfg.Role {
 	case "all":
 		startAPIRole(cfg, database)
-		startWorkerRole(cfg, database)
-		startSchedulerRole(cfg, database)
+		startWorkerRole(cfg, workerEngine)
+		startSchedulerRole(cfg, sched)
 	case "api":
 		startAPIRole(cfg, database)
 	case "worker":
-		startWorkerRole(cfg, database)
+		startWorkerRole(cfg, workerEngine)
 	case "scheduler":
-		startSchedulerRole(cfg, database)
+		startSchedulerRole(cfg, sched)
 	default:
 		fmt.Printf("[FATAL] Unknown role: '%s'. Valid roles are: all, api, worker, scheduler\n", cfg.Role)
 		os.Exit(1)
@@ -54,17 +61,21 @@ func main() {
 	sig := <-sigChan
 
 	fmt.Printf("\n[INFO] Received signal '%v'. Gracefully shutting down PingGopher...\n", sig)
+	if cfg.Role == "all" || cfg.Role == "scheduler" {
+		sched.Stop()
+	}
 	fmt.Println("[INFO] PingGopher stopped cleanly.")
 }
 
-func startAPIRole(cfg *config.Config, database interface{}) {
+func startAPIRole(cfg *config.Config, database *gorm.DB) {
 	fmt.Printf("[ROLE: API] Starting REST API Server on port %s...\n", cfg.Port)
 }
 
-func startWorkerRole(cfg *config.Config, database interface{}) {
-	fmt.Printf("[ROLE: WORKER] Starting gopher-queue task worker pool connected to Redis at %s...\n", cfg.RedisAddr)
+func startWorkerRole(cfg *config.Config, engine *worker.WorkerEngine) {
+	fmt.Printf("[ROLE: WORKER] Probe execution worker engine ready (Redis target: %s)\n", cfg.RedisAddr)
 }
 
-func startSchedulerRole(cfg *config.Config, database interface{}) {
-	fmt.Println("[ROLE: SCHEDULER] Starting monitor check scheduler loop...")
+func startSchedulerRole(cfg *config.Config, sched *scheduler.Scheduler) {
+	fmt.Println("[ROLE: SCHEDULER] Booting monitor check promoter loop...")
+	sched.Start(10 * time.Second)
 }

@@ -1,0 +1,122 @@
+package worker
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/pinggopher/ping-gopher/internal/db"
+	"gorm.io/gorm"
+)
+
+// CheckPayload represents task parameter data passed into probe workers.
+type CheckPayload struct {
+	MonitorID string `json:"monitor_id"`
+	TargetURL string `json:"target_url"`
+}
+
+// WorkerEngine processes synthetic probes and updates database telemetry.
+type WorkerEngine struct {
+	DB *gorm.DB
+}
+
+// NewWorkerEngine creates a new WorkerEngine instance.
+func NewWorkerEngine(database *gorm.DB) *WorkerEngine {
+	return &WorkerEngine{DB: database}
+}
+
+// ProcessHTTPCheck executes an HTTP uptime check for a monitor and handles incident state transitions.
+func (w *WorkerEngine) ProcessHTTPCheck(payloadRaw []byte) error {
+	var payload CheckPayload
+	if err := json.Unmarshal(payloadRaw, &payload); err != nil {
+		return fmt.Errorf("failed to parse check payload: %w", err)
+	}
+
+	monitorID, err := uuid.Parse(payload.MonitorID)
+	if err != nil {
+		return fmt.Errorf("invalid monitor ID '%s': %w", payload.MonitorID, err)
+	}
+
+	// 1. Fetch monitor from database
+	var monitor db.Monitor
+	if err := w.DB.First(&monitor, "id = ?", monitorID).Error; err != nil {
+		return fmt.Errorf("monitor not found in database: %w", err)
+	}
+
+	// 2. Execute HTTP Probe
+	probeResult := ExecuteHTTPProbe(monitor.URL, 10*time.Second)
+
+	// 3. Record PingLog entry
+	pingLog := db.PingLog{
+		MonitorID:      monitor.ID,
+		StatusCode:     probeResult.StatusCode,
+		ResponseTimeMS: probeResult.ResponseTimeMS,
+		ErrorMessage:   probeResult.ErrorMessage,
+		CreatedAt:      time.Now(),
+	}
+
+	if err := w.DB.Create(&pingLog).Error; err != nil {
+		return fmt.Errorf("failed to insert ping log: %w", err)
+	}
+
+	// 4. Update Monitor Status & Incident Management
+	newStatus := db.StatusUp
+	if !probeResult.IsUp {
+		newStatus = db.StatusDown
+	}
+
+	previousStatus := monitor.Status
+	monitor.Status = newStatus
+	w.DB.Model(&monitor).Update("status", newStatus)
+
+	// State Transition: UP -> DOWN => Create Incident
+	if previousStatus != db.StatusDown && newStatus == db.StatusDown {
+		incident := db.Incident{
+			MonitorID: monitor.ID,
+			StartedAt: time.Now(),
+			Cause:     probeResult.ErrorMessage,
+			Status:    db.IncidentOpen,
+		}
+		w.DB.Create(&incident)
+	}
+
+	// State Transition: DOWN -> UP => Resolve Open Incidents
+	if previousStatus == db.StatusDown && newStatus == db.StatusUp {
+		now := time.Now()
+		w.DB.Model(&db.Incident{}).
+			Where("monitor_id = ? AND status != ?", monitor.ID, db.IncidentResolved).
+			Updates(map[string]interface{}{
+				"status":      db.IncidentResolved,
+				"resolved_at": &now,
+			})
+	}
+
+	return nil
+}
+
+// ProcessSSLCheck executes an SSL certificate inspection probe for a monitor.
+func (w *WorkerEngine) ProcessSSLCheck(payloadRaw []byte) error {
+	var payload CheckPayload
+	if err := json.Unmarshal(payloadRaw, &payload); err != nil {
+		return fmt.Errorf("failed to parse check payload: %w", err)
+	}
+
+	monitorID, err := uuid.Parse(payload.MonitorID)
+	if err != nil {
+		return fmt.Errorf("invalid monitor ID '%s': %w", payload.MonitorID, err)
+	}
+
+	var monitor db.Monitor
+	if err := w.DB.First(&monitor, "id = ?", monitorID).Error; err != nil {
+		return fmt.Errorf("monitor not found in database: %w", err)
+	}
+
+	sslResult := ExecuteSSLProbe(monitor.URL, 10*time.Second)
+
+	if sslResult.ExpirationDate != nil {
+		w.DB.Model(&monitor).Update("ssl_expiration_date", sslResult.ExpirationDate)
+	}
+
+	return nil
+}
