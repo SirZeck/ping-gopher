@@ -11,6 +11,25 @@
 
 ---
 
+## 📂 Project Structure
+
+```text
+ping-gopher/
+├── .github/workflows/    # Automated CI/CD build & test workflows
+├── .agents/              # Workspace rules & agent instructions
+├── cmd/
+│   └── pinggopher/       # Main binary entrypoint & multi-role launcher
+├── internal/
+│   ├── config/           # Environment variables & CLI flags parser
+│   └── db/               # GORM database layer, models, ERD & migrations
+├── Dockerfile            # Multi-stage production container build
+├── docker-compose.yml    # Multi-container orchestration (PingGopher + Redis)
+├── Makefile              # Development build & execution shortcuts
+└── README.md
+```
+
+---
+
 ## 🏛️ Architecture & System Design
 
 PingGopher uses a **Modular Monolith** pattern with decoupling between domain packages (`internal/db`, `internal/config`, `internal/api`, `internal/worker`, `internal/notifier`).
@@ -67,6 +86,26 @@ Run any node type using runtime CLI flags or environment variables:
 
 ---
 
+## 📅 Roadmap & Development Phases
+
+- [x] **Phase 1: Project Setup & Database Foundations**
+  - Modular Monolith architecture & "Deploy Any Role" binary launcher.
+  - Multi-tenant GORM domain models (`User`, `Monitor`, `PingLog`, `Incident`).
+  - Pure Go CGO-free SQLite driver & PostgreSQL compatibility.
+  - Multi-stage Dockerfile & `docker-compose` orchestration.
+- [ ] **Phase 2: Core Ping & Worker Engine**
+  - `check:http_uptime` and `check:ssl_cert` worker handlers.
+  - `gopher-queue` client & background scheduler integration.
+- [ ] **Phase 3: REST API & Authentication**
+  - JWT authentication (`/v1/auth/signup`, `/v1/auth/login`).
+  - Monitor CRUD endpoints (`/v1/monitors`).
+- [ ] **Phase 4: Web Application Dashboard**
+  - Real-time SLA charts, response latency graphs, and monitor controls.
+- [ ] **Phase 5: Alerting & Public Status Pages**
+  - Email/webhook notification dispatchers & hosted public status pages (`/status/:slug`).
+
+---
+
 ## 🚀 Quickstart
 
 ### 1. Run via Docker Compose (Recommended)
@@ -102,18 +141,6 @@ make run-all
 ./bin/pinggopher.exe --role=all
 ```
 
-### 3. Run Specific Deployment Roles
-```bash
-# Terminal 1: Start API Node
-./bin/pinggopher.exe --role=api --port=8080
-
-# Terminal 2: Start Scheduler Node
-./bin/pinggopher.exe --role=scheduler
-
-# Terminal 3: Start Worker Node Pool
-./bin/pinggopher.exe --role=worker --redis=localhost:6379
-```
-
 ---
 
 ## ⚙️ Configuration
@@ -130,12 +157,9 @@ Configurations can be set via command-line flags or environment variables:
 
 ---
 
-## 🧪 Testing
+## 🤝 Contributing
 
-Run automated tests:
-```bash
-make test
-```
+Contributions are welcome! Please check our [Contributing Guide](CONTRIBUTING.md) for setup steps and pull request guidelines.
 
 ---
 
