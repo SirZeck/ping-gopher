@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -13,24 +13,23 @@ import (
 )
 
 func TestSchedulerRunCheckCycle(t *testing.T) {
-	testDBPath := "test_scheduler.db"
-	defer os.Remove(testDBPath)
+	testDBPath := filepath.Join(t.TempDir(), "test_scheduler.db")
 
 	database, err := db.InitDB(testDBPath)
 	if err != nil {
 		t.Fatalf("Failed to init DB: %v", err)
 	}
 
-	// Mock HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
 	user := db.User{Email: "sched_test@pinggopher.com", PasswordHash: "pass"}
-	database.Create(&user)
+	if err := database.Create(&user).Error; err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
 
-	// Create active monitor
 	monitor := db.Monitor{
 		UserID:               user.ID,
 		Name:                 "Active Target",
@@ -38,7 +37,9 @@ func TestSchedulerRunCheckCycle(t *testing.T) {
 		CheckIntervalSeconds: 10,
 		Status:               db.StatusUp,
 	}
-	database.Create(&monitor)
+	if err := database.Create(&monitor).Error; err != nil {
+		t.Fatalf("Failed to create monitor: %v", err)
+	}
 
 	workerEngine := worker.NewWorkerEngine(database)
 	sched := NewScheduler(database, workerEngine)
@@ -48,10 +49,9 @@ func TestSchedulerRunCheckCycle(t *testing.T) {
 		t.Fatalf("Scheduler RunOnce failed: %v", err)
 	}
 
-	// Wait briefly for async worker goroutine
-	time.Sleep(200 * time.Millisecond)
+	// Wait briefly for async worker goroutine execution
+	time.Sleep(300 * time.Millisecond)
 
-	// Verify PingLog entry was generated
 	var logs []db.PingLog
 	database.Find(&logs, "monitor_id = ?", monitor.ID)
 	if len(logs) != 1 {

@@ -3,7 +3,7 @@ package worker
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -11,7 +11,6 @@ import (
 )
 
 func TestExecuteHTTPProbeSuccess(t *testing.T) {
-	// Start mock HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -29,7 +28,6 @@ func TestExecuteHTTPProbeSuccess(t *testing.T) {
 }
 
 func TestExecuteHTTPProbeFailure(t *testing.T) {
-	// Start mock HTTP server returning 500 Internal Server Error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -46,22 +44,22 @@ func TestExecuteHTTPProbeFailure(t *testing.T) {
 }
 
 func TestWorkerEngineProcessHTTPCheck(t *testing.T) {
-	testDBPath := "test_worker.db"
-	defer os.Remove(testDBPath)
+	testDBPath := filepath.Join(t.TempDir(), "test_worker.db")
 
 	database, err := db.InitDB(testDBPath)
 	if err != nil {
 		t.Fatalf("Failed to init DB: %v", err)
 	}
 
-	// Mock HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
 	user := db.User{Email: "worker_test@pinggopher.com", PasswordHash: "pass"}
-	database.Create(&user)
+	if err := database.Create(&user).Error; err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
 
 	monitor := db.Monitor{
 		UserID: user.ID,
@@ -69,7 +67,9 @@ func TestWorkerEngineProcessHTTPCheck(t *testing.T) {
 		URL:    server.URL,
 		Status: db.StatusPaused,
 	}
-	database.Create(&monitor)
+	if err := database.Create(&monitor).Error; err != nil {
+		t.Fatalf("Failed to create monitor: %v", err)
+	}
 
 	engine := NewWorkerEngine(database)
 
@@ -79,7 +79,6 @@ func TestWorkerEngineProcessHTTPCheck(t *testing.T) {
 		t.Fatalf("ProcessHTTPCheck failed: %v", err)
 	}
 
-	// Verify PingLog creation
 	var logs []db.PingLog
 	database.Find(&logs, "monitor_id = ?", monitor.ID)
 	if len(logs) != 1 {
@@ -89,7 +88,6 @@ func TestWorkerEngineProcessHTTPCheck(t *testing.T) {
 		t.Fatalf("Expected PingLog status code 200, got %d", logs[0].StatusCode)
 	}
 
-	// Verify Monitor Status updated to UP
 	var updatedMonitor db.Monitor
 	database.First(&updatedMonitor, "id = ?", monitor.ID)
 	if updatedMonitor.Status != db.StatusUp {

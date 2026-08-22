@@ -1,7 +1,7 @@
 package db
 
 import (
-	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -9,15 +9,13 @@ import (
 )
 
 func TestDatabaseInitializationAndModels(t *testing.T) {
-	testDBPath := "test_pinggopher.db"
-	defer os.Remove(testDBPath)
+	testDBPath := filepath.Join(t.TempDir(), "test_pinggopher.db")
 
 	database, err := InitDB(testDBPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize DB: %v", err)
 	}
 
-	// 1. Test User Creation
 	user := User{
 		Email:        "admin@pinggopher.io",
 		PasswordHash: "secret_hash",
@@ -29,7 +27,6 @@ func TestDatabaseInitializationAndModels(t *testing.T) {
 		t.Fatalf("Expected auto-generated UUID for User, got Nil")
 	}
 
-	// 2. Test Monitor Creation
 	sslExpiry := time.Now().AddDate(0, 3, 0)
 	monitor := Monitor{
 		UserID:               user.ID,
@@ -46,7 +43,6 @@ func TestDatabaseInitializationAndModels(t *testing.T) {
 		t.Fatalf("Expected auto-generated UUID for Monitor, got Nil")
 	}
 
-	// 3. Test PingLog Creation
 	pingLog := PingLog{
 		MonitorID:      monitor.ID,
 		StatusCode:     200,
@@ -58,7 +54,6 @@ func TestDatabaseInitializationAndModels(t *testing.T) {
 		t.Fatalf("Failed to create ping log: %v", err)
 	}
 
-	// 4. Test Incident Creation
 	incident := Incident{
 		MonitorID: monitor.ID,
 		StartedAt: time.Now(),
@@ -69,7 +64,6 @@ func TestDatabaseInitializationAndModels(t *testing.T) {
 		t.Fatalf("Failed to create incident: %v", err)
 	}
 
-	// 5. Query user with preloaded monitors
 	var fetchedUser User
 	if err := database.Preload("Monitors.PingLogs").Preload("Monitors.Incidents").First(&fetchedUser, "id = ?", user.ID).Error; err != nil {
 		t.Fatalf("Failed to query user: %v", err)
