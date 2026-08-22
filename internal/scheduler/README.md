@@ -20,9 +20,18 @@ Gracefully halts the promoter ticker loop and waits for active dispatches to set
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing & Verification
 
-Run scheduler unit tests:
+### Automated Unit Test Suite (`scheduler_test.go`)
+
+We use an isolated SQLite test database (`test_scheduler.db`) and mock HTTP server to test monitor check polling and dispatching:
+
+| Test Method | Test Focus & Verification |
+| :--- | :--- |
+| **`TestSchedulerRunCheckCycle`** | - Creates an active monitor record (`status = 'UP'`) in an isolated database.<br>- Executes `RunOnce(ctx)` synchronously to trigger a promoter check cycle.<br>- Verifies that the scheduler selects active monitors, dispatches check payloads to `WorkerEngine`, and generates a `PingLog` entry. |
+
+### Running Scheduler Unit Tests
+
 ```bash
 go test -v ./internal/scheduler
 ```
