@@ -143,12 +143,27 @@ func (h *APIHandler) UpdateMonitorHandler(w http.ResponseWriter, r *http.Request
 		monitor.Name = req.Name
 	}
 	if req.URL != "" {
+		if err := worker.ValidateSafeURL(req.URL); err != nil {
+			JSONError(w, http.StatusBadRequest, fmt.Sprintf("Prohibited monitor URL: %v", err))
+			return
+		}
 		monitor.URL = req.URL
+	}
+	if req.WebhookURL != "" {
+		if err := worker.ValidateSafeURL(req.WebhookURL); err != nil {
+			JSONError(w, http.StatusBadRequest, fmt.Sprintf("Prohibited webhook URL: %v", err))
+			return
+		}
+		monitor.WebhookURL = req.WebhookURL
 	}
 	if req.CheckIntervalSeconds > 0 {
 		monitor.CheckIntervalSeconds = req.CheckIntervalSeconds
 	}
 	if req.Status != "" {
+		if req.Status != db.StatusUp && req.Status != db.StatusDown && req.Status != db.StatusPaused {
+			JSONError(w, http.StatusBadRequest, "Invalid monitor status value")
+			return
+		}
 		monitor.Status = req.Status
 	}
 

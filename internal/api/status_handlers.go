@@ -48,10 +48,8 @@ func (h *APIHandler) PublicStatusHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	if targetUserID == uuid.Nil {
-		var defaultUser db.User
-		if err := h.DB.First(&defaultUser).Error; err == nil {
-			targetUserID = defaultUser.ID
-		}
+		JSONError(w, http.StatusBadRequest, "Missing or invalid tenant_id query parameter")
+		return
 	}
 
 	var monitors []db.Monitor

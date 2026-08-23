@@ -12,6 +12,7 @@ import (
 )
 
 func TestSendWebhookAlertSuccess(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
 	receivedChan := make(chan WebhookPayload, 1)
 
 	// Mock webhook receiver server
@@ -59,6 +60,7 @@ func TestSendWebhookAlertSuccess(t *testing.T) {
 }
 
 func TestNotificationEngineOutageAndRecovery(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
 	receivedChan := make(chan WebhookPayload, 2)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

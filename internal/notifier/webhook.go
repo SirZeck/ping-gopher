@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/SirZeck/ping-gopher/internal/validator"
 )
 
 // WebhookPayload represents the JSON notification format dispatched to external webhooks.
@@ -30,7 +32,7 @@ var sharedWebhookClient = &http.Client{
 	Transport: sharedWebhookTransport,
 }
 
-// SendWebhookAlert dispatches a JSON POST payload to a configured webhook URL.
+// SendWebhookAlert dispatches a JSON POST payload to a configured webhook URL with SSRF validation and retries.
 func SendWebhookAlert(webhookURL string, payload WebhookPayload, timeout time.Duration) error {
 	if webhookURL == "" {
 		return nil
@@ -38,6 +40,10 @@ func SendWebhookAlert(webhookURL string, payload WebhookPayload, timeout time.Du
 
 	if timeout <= 0 {
 		timeout = 10 * time.Second
+	}
+
+	if err := validator.ValidateSafeURL(webhookURL); err != nil {
+		return fmt.Errorf("SSRF protection blocked webhook URL '%s': %w", webhookURL, err)
 	}
 
 	bodyBytes, err := json.Marshal(payload)
@@ -52,25 +58,40 @@ func SendWebhookAlert(webhookURL string, payload WebhookPayload, timeout time.Du
 			Transport: sharedWebhookTransport,
 		}
 	}
-	req, err := http.NewRequest("POST", webhookURL, bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		return fmt.Errorf("failed to create webhook request: %w", err)
+
+	var lastErr error
+	maxRetries := 3
+	backoff := 1 * time.Second
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		req, err := http.NewRequest("POST", webhookURL, bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			return fmt.Errorf("failed to create webhook request: %w", err)
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", "PingGopher-Notifier/1.0")
+
+		resp, err := client.Do(req)
+		if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			resp.Body.Close()
+			return nil
+		}
+
+		if err != nil {
+			lastErr = err
+		} else {
+			lastErr = fmt.Errorf("webhook responded with HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+			resp.Body.Close()
+		}
+
+		if attempt < maxRetries {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "PingGopher-Notifier/1.0")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to dispatch webhook to %s: %w", webhookURL, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("webhook endpoint returned non-2xx status code %d", resp.StatusCode)
-	}
-
-	return nil
+	return fmt.Errorf("webhook delivery to %s failed after %d attempts: %w", webhookURL, maxRetries, lastErr)
 }
 
 type WebhookError string

@@ -200,3 +200,84 @@ func TestMonitorCRUDAPI(t *testing.T) {
 	}
 	resp.Body.Close()
 }
+
+func TestPublicStatusMissingTenantID(t *testing.T) {
+	ts, _, cleanup := setupTestAPI(t)
+	defer cleanup()
+
+	resp, err := http.Get(ts.URL + "/v1/status/public")
+	if err != nil {
+		t.Fatalf("Request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Expected 400 Bad Request when tenant_id is missing, got %d", resp.StatusCode)
+	}
+}
+
+func TestUpdateMonitorSSRFAndEnumValidation(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
+	ts, _, cleanup := setupTestAPI(t)
+	defer cleanup()
+
+	client := &http.Client{}
+
+	// 1. Signup user
+	signupBody := bytes.NewBufferString(`{"email":"update_test@pinggopher.com","password":"Password123!"}`)
+	resp, err := client.Post(ts.URL+"/v1/auth/signup", "application/json", signupBody)
+	if err != nil {
+		t.Fatalf("Signup failed: %v", err)
+	}
+
+	var authEnv struct {
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}
+	json.NewDecoder(resp.Body).Decode(&authEnv)
+	token := authEnv.Data.Token
+	resp.Body.Close()
+
+	// 2. Create valid monitor
+	createBody := bytes.NewBufferString(`{"name":"Initial Target","url":"` + ts.URL + `"}`)
+	req, _ := http.NewRequest("POST", ts.URL+"/v1/monitors", createBody)
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("Create monitor failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected 201 Created for monitor creation, got %d", resp.StatusCode)
+	}
+
+	var monitorEnv struct {
+		Data db.Monitor `json:"data"`
+	}
+	json.NewDecoder(resp.Body).Decode(&monitorEnv)
+	mon := monitorEnv.Data
+	resp.Body.Close()
+
+	// 3. Test SSRF blocked on update
+	updateSSRFBody := bytes.NewBufferString(`{"url":"http://169.254.169.254/latest/meta-data"}`)
+	req, _ = http.NewRequest("PUT", ts.URL+"/v1/monitors/"+mon.ID.String(), updateSSRFBody)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, _ = client.Do(req)
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Expected 400 Bad Request for SSRF update, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// 4. Test invalid status enum on update
+	updateEnumBody := bytes.NewBufferString(`{"status":"INVALID_STATUS"}`)
+	req, _ = http.NewRequest("PUT", ts.URL+"/v1/monitors/"+mon.ID.String(), updateEnumBody)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, _ = client.Do(req)
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Expected 400 Bad Request for invalid status enum, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}

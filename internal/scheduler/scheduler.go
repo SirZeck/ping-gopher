@@ -18,6 +18,7 @@ type Scheduler struct {
 	WorkerEngine *worker.WorkerEngine
 	Ticker       *time.Ticker
 	StopChan     chan struct{}
+	workerPool   chan struct{}
 	wg           sync.WaitGroup
 }
 
@@ -27,6 +28,7 @@ func NewScheduler(database *gorm.DB, engine *worker.WorkerEngine) *Scheduler {
 		DB:           database,
 		WorkerEngine: engine,
 		StopChan:     make(chan struct{}),
+		workerPool:   make(chan struct{}, 50), // Max 50 concurrent probes
 	}
 }
 
@@ -37,10 +39,12 @@ func (s *Scheduler) Start(pollInterval time.Duration) {
 	}
 
 	s.Ticker = time.NewTicker(pollInterval)
+	pruneTicker := time.NewTicker(24 * time.Hour)
 	s.wg.Add(1)
 
 	go func() {
 		defer s.wg.Done()
+		defer pruneTicker.Stop()
 		fmt.Printf("[SCHEDULER] Monitor scheduler promoter loop started (Interval: %v)\n", pollInterval)
 
 		// Execute an initial check run on boot
@@ -50,6 +54,10 @@ func (s *Scheduler) Start(pollInterval time.Duration) {
 			select {
 			case <-s.Ticker.C:
 				s.RunCheckCycle()
+			case <-pruneTicker.C:
+				if deleted, err := db.PruneOldLogs(s.DB, 30); err == nil && deleted > 0 {
+					fmt.Printf("[SCHEDULER] Pruned %d old telemetry logs older than 30 days.\n", deleted)
+				}
 			case <-s.StopChan:
 				fmt.Println("[SCHEDULER] Stopping monitor scheduler promoter loop...")
 				return
@@ -97,10 +105,12 @@ func (s *Scheduler) RunCheckCycle() {
 			continue
 		}
 
-		// Track probe execution goroutine in WaitGroup for graceful shutdown
+		// Track probe execution goroutine in WaitGroup and workerPool semaphore for concurrency control
 		s.wg.Add(1)
+		s.workerPool <- struct{}{}
 		go func(p []byte, monitorID string) {
 			defer s.wg.Done()
+			defer func() { <-s.workerPool }()
 			if err := s.WorkerEngine.ProcessHTTPCheck(p); err != nil {
 				fmt.Printf("[SCHEDULER ERROR] Probe execution failed for monitor %s: %v\n", monitorID, err)
 			}

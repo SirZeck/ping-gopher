@@ -83,6 +83,12 @@ func main() {
 	if cfg.Role == "all" || cfg.Role == "scheduler" {
 		sched.Stop()
 	}
+
+	if sqlDB, err := database.DB(); err == nil {
+		sqlDB.Close()
+		fmt.Println("[INFO] Database connection pool closed.")
+	}
+
 	fmt.Println("[INFO] PingGopher stopped cleanly.")
 }
 

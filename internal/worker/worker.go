@@ -73,7 +73,11 @@ func (w *WorkerEngine) ProcessHTTPCheck(payloadRaw []byte) error {
 
 	previousStatus := monitor.Status
 	monitor.Status = newStatus
-	w.DB.Model(&monitor).Update("status", newStatus)
+	now := time.Now()
+	w.DB.Model(&monitor).Updates(map[string]interface{}{
+		"status":     newStatus,
+		"updated_at": now,
+	})
 
 	// State Transition: UP -> DOWN => Create Incident & Dispatch Alert
 	if previousStatus != db.StatusDown && newStatus == db.StatusDown {
