@@ -108,6 +108,38 @@ Run any node type using runtime CLI flags or environment variables:
 
 ---
 
+## 💻 Official CLI Tool (`pinggopher-cli`)
+
+PingGopher includes an official command-line client for terminal-based tenant authentication, monitor CRUD management, public status checking, and probe latency inspection.
+
+### 📥 Installation via `go install`
+```bash
+go install github.com/SirZeck/ping-gopher/cmd/pinggopher-cli@latest
+```
+
+### ⚡ Terminal Usage Examples
+
+```bash
+# 1. Authenticate and save JWT session token locally (~/.pinggopher/credentials.json)
+pinggopher-cli login --url http://localhost:8080 --email admin@pinggopher.io --password SecretPassword123!
+
+# 2. View public system operational health status
+pinggopher-cli status
+
+# 3. List active monitor targets in formatted ASCII table
+pinggopher-cli monitor list
+
+# 4. Add a new target monitor directly from the terminal
+pinggopher-cli monitor add --name "Production API" --url "https://api.example.com/health" --interval 30
+
+# 5. Inspect probe latency response history logs
+pinggopher-cli logs --id <MONITOR_ID> --limit 20
+```
+
+Read the full [`cmd/pinggopher-cli/README.md`](cmd/pinggopher-cli/README.md) for detailed CLI documentation.
+
+---
+
 ## 🚀 Quickstart
 
 ### 1. Run via Docker Compose (Recommended)
