@@ -74,12 +74,12 @@ func (m *Monitor) BeforeCreate(tx *gorm.DB) error {
 // PingLog records the result of an individual synthetic probe or HTTP check execution.
 type PingLog struct {
 	ID             uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
-	MonitorID      uuid.UUID `gorm:"type:uuid;index;not null" json:"monitor_id"`
+	MonitorID      uuid.UUID `gorm:"type:uuid;index:idx_monitor_created,priority:1;not null" json:"monitor_id"`
 	Monitor        Monitor   `gorm:"foreignKey:MonitorID" json:"-"`
 	StatusCode     int       `gorm:"not null" json:"status_code"`
 	ResponseTimeMS int       `gorm:"not null" json:"response_time_ms"`
 	ErrorMessage   string    `gorm:"type:text" json:"error_message,omitempty"`
-	CreatedAt      time.Time `gorm:"index" json:"created_at"`
+	CreatedAt      time.Time `gorm:"index:idx_monitor_created,priority:2" json:"created_at"`
 }
 
 // BeforeCreate GORM hook to generate UUID if not set.
