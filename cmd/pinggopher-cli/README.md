@@ -21,7 +21,14 @@ make build-cli
 
 ## ⚡ Command Reference
 
-### 1. `login` (Authentication)
+### 1. `signup` (Registration)
+Registers a new tenant account on a PingGopher server and saves the JWT Bearer token to `~/.pinggopher/credentials.json`:
+
+```bash
+pinggopher-cli signup --url http://localhost:8080 --email newuser@pinggopher.io --password SecretPassword123!
+```
+
+### 2. `login` (Authentication)
 Authenticates against a PingGopher API server and saves the JWT Bearer token to `~/.pinggopher/credentials.json`:
 
 ```bash

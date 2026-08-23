@@ -29,6 +29,8 @@ func main() {
 	args := os.Args[2:]
 
 	switch command {
+	case "signup":
+		handleSignup(args)
 	case "login":
 		handleLogin(args)
 	case "status":
@@ -51,16 +53,66 @@ func printUsage() {
 	fmt.Printf(cliBanner, version)
 	fmt.Println("Usage: pinggopher-cli <command> [options]")
 	fmt.Println("\nCommands:")
+	fmt.Println("  signup    Register a new tenant account on a PingGopher server")
 	fmt.Println("  login     Authenticate against a PingGopher API server")
 	fmt.Println("  status    Query public system operational health status")
 	fmt.Println("  monitor   Manage target monitors (list, add, delete)")
 	fmt.Println("  logs      View response latency telemetry and execution logs")
 	fmt.Println("  version   Display CLI version")
 	fmt.Println("\nExamples:")
+	fmt.Println("  pinggopher-cli signup --url http://localhost:8080 --email newuser@example.com --password secret")
 	fmt.Println("  pinggopher-cli login --url http://localhost:8080 --email admin@example.com --password secret")
 	fmt.Println("  pinggopher-cli monitor list")
 	fmt.Println("  pinggopher-cli monitor add --name \"Production API\" --url https://api.example.com --interval 30")
 	fmt.Println("  pinggopher-cli status")
+}
+
+func handleSignup(args []string) {
+	fs := flag.NewFlagSet("signup", flag.ExitOnError)
+	serverURL := fs.String("url", "http://localhost:8080", "PingGopher API Server URL")
+	email := fs.String("email", "", "Tenant Account Email")
+	password := fs.String("password", "", "Tenant Account Password")
+	fs.Parse(args)
+
+	if *email == "" || *password == "" {
+		fmt.Println("Error: --email and --password flags are required.")
+		fs.Usage()
+		os.Exit(1)
+	}
+
+	signupPayload := map[string]string{
+		"email":    *email,
+		"password": *password,
+	}
+
+	env, err := DoAPIRequest("POST", *serverURL, "/v1/auth/signup", signupPayload, "")
+	if err != nil {
+		fmt.Printf("[ERROR] Registration failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	var authData struct {
+		Token string  `json:"token"`
+		User  db.User `json:"user"`
+	}
+	if err := json.Unmarshal(env.Data, &authData); err != nil {
+		fmt.Printf("[ERROR] Failed to parse auth response: %v\n", err)
+		os.Exit(1)
+	}
+
+	creds := &Credentials{
+		ServerURL: *serverURL,
+		Email:     *email,
+		Token:     authData.Token,
+	}
+
+	if err := SaveCredentials(creds); err != nil {
+		fmt.Printf("[ERROR] Failed to save session credentials: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("[SUCCESS] Account created and authenticated successfully as '%s' on %s\n", *email, *serverURL)
+	fmt.Println("Session token saved to ~/.pinggopher/credentials.json")
 }
 
 func handleLogin(args []string) {

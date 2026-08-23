@@ -120,7 +120,10 @@ go install github.com/SirZeck/ping-gopher/cmd/pinggopher-cli@latest
 ### ⚡ Terminal Usage Examples
 
 ```bash
-# 1. Authenticate and save JWT session token locally (~/.pinggopher/credentials.json)
+# 1. Register a new tenant account and save session token
+pinggopher-cli signup --url http://localhost:8080 --email newuser@pinggopher.io --password SecretPassword123!
+
+# 2. Or authenticate an existing account
 pinggopher-cli login --url http://localhost:8080 --email admin@pinggopher.io --password SecretPassword123!
 
 # 2. View public system operational health status
