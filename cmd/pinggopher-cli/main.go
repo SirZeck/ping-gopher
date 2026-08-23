@@ -183,19 +183,29 @@ func handleLogin(args []string) {
 
 func handleStatus(args []string) {
 	fs := flag.NewFlagSet("status", flag.ExitOnError)
+	tenantID := fs.String("tenant", "", "Tenant UUID")
 	serverURL := fs.String("url", "", "PingGopher API Server URL (optional)")
 	fs.Parse(args)
 
 	targetURL := *serverURL
-	if targetURL == "" {
-		if creds, err := LoadCredentials(); err == nil {
+	tid := *tenantID
+	var token string
+	if creds, err := LoadCredentials(); err == nil {
+		if targetURL == "" {
 			targetURL = creds.ServerURL
-		} else {
-			targetURL = "http://localhost:8080"
 		}
+		token = creds.Token
+	}
+	if targetURL == "" {
+		targetURL = "http://localhost:8080"
 	}
 
-	env, err := DoAPIRequest("GET", targetURL, "/v1/status/public", nil, "")
+	endpoint := "/v1/status/public"
+	if tid != "" {
+		endpoint += "?tenant_id=" + tid
+	}
+
+	env, err := DoAPIRequest("GET", targetURL, endpoint, nil, token)
 	if err != nil {
 		fmt.Printf("[ERROR] Failed to fetch system status: %v\n", err)
 		os.Exit(1)

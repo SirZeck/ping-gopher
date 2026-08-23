@@ -38,7 +38,7 @@ func (h *APIHandler) SetupRouter() http.Handler {
 	mux.HandleFunc("GET /v1/monitors/{id}/incidents", AuthMiddleware(jwtSecret, h.GetMonitorIncidentsHandler))
 
 	// 6. Embedded Web Dashboard Static Handler
-	mux.Handle("GET /", web.StaticHandler())
+	mux.Handle("/", web.StaticHandler())
 
 	// Wrap in CORS middleware
 	return CORSMiddleware(mux)

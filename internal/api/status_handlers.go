@@ -2,10 +2,12 @@ package api
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/SirZeck/ping-gopher/internal/auth"
 	"github.com/SirZeck/ping-gopher/internal/db"
+	"github.com/google/uuid"
 )
 
 type PublicStatusResponse struct {
@@ -44,6 +46,18 @@ func (h *APIHandler) PublicStatusHandler(w http.ResponseWriter, r *http.Request)
 	if tenantIDStr != "" {
 		if parsed, err := uuid.Parse(tenantIDStr); err == nil {
 			targetUserID = parsed
+		}
+	}
+
+	if targetUserID == uuid.Nil {
+		authHeader := r.Header.Get("Authorization")
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+			if claims, err := auth.ValidateJWTToken(tokenStr, h.Config.JWTSecret); err == nil {
+				if parsed, err := uuid.Parse(claims.UserID); err == nil {
+					targetUserID = parsed
+				}
+			}
 		}
 	}
 
