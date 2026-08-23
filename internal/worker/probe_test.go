@@ -77,7 +77,7 @@ func TestWorkerEngineProcessHTTPCheck(t *testing.T) {
 		t.Fatalf("Failed to create monitor: %v", err)
 	}
 
-	engine := NewWorkerEngine(database)
+	engine := NewWorkerEngine(database, nil)
 
 	payload := []byte(`{"monitor_id":"` + monitor.ID.String() + `","target_url":"` + server.URL + `"}`)
 	err = engine.ProcessHTTPCheck(payload)

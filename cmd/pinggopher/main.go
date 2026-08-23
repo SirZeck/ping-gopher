@@ -12,6 +12,7 @@ import (
 	"github.com/SirZeck/ping-gopher/internal/api"
 	"github.com/SirZeck/ping-gopher/internal/config"
 	"github.com/SirZeck/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/notifier"
 	"github.com/SirZeck/ping-gopher/internal/scheduler"
 	"github.com/SirZeck/ping-gopher/internal/worker"
 )
@@ -37,7 +38,8 @@ func main() {
 	}
 	fmt.Println("[SUCCESS] Database initialized and GORM models auto-migrated successfully.")
 
-	workerEngine := worker.NewWorkerEngine(database)
+	notifierEngine := notifier.NewNotificationEngine()
+	workerEngine := worker.NewWorkerEngine(database, notifierEngine)
 	sched := scheduler.NewScheduler(database, workerEngine)
 	apiHandler := api.NewAPIHandler(database, cfg)
 

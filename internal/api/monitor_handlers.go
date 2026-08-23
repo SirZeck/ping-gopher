@@ -15,6 +15,7 @@ type CreateMonitorRequest struct {
 	Name                 string `json:"name"`
 	URL                  string `json:"url"`
 	CheckIntervalSeconds int    `json:"check_interval_seconds"`
+	WebhookURL           string `json:"webhook_url,omitempty"`
 }
 
 type UpdateMonitorRequest struct {
@@ -22,6 +23,7 @@ type UpdateMonitorRequest struct {
 	URL                  string           `json:"url,omitempty"`
 	CheckIntervalSeconds int              `json:"check_interval_seconds,omitempty"`
 	Status               db.MonitorStatus `json:"status,omitempty"`
+	WebhookURL           string           `json:"webhook_url,omitempty"`
 }
 
 // CreateMonitorHandler creates a new monitor target for the authenticated tenant.
@@ -57,6 +59,7 @@ func (h *APIHandler) CreateMonitorHandler(w http.ResponseWriter, r *http.Request
 		Name:                 req.Name,
 		URL:                  req.URL,
 		CheckIntervalSeconds: req.CheckIntervalSeconds,
+		WebhookURL:           req.WebhookURL,
 		Status:               db.StatusUp, // Enabled by default on creation
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/SirZeck/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/notifier"
 	"gorm.io/gorm"
 )
 
@@ -18,12 +19,16 @@ type CheckPayload struct {
 
 // WorkerEngine processes synthetic probes and updates database telemetry.
 type WorkerEngine struct {
-	DB *gorm.DB
+	DB       *gorm.DB
+	Notifier *notifier.NotificationEngine
 }
 
-// NewWorkerEngine creates a new WorkerEngine instance.
-func NewWorkerEngine(database *gorm.DB) *WorkerEngine {
-	return &WorkerEngine{DB: database}
+// NewWorkerEngine creates a new WorkerEngine instance with alerting capabilities.
+func NewWorkerEngine(database *gorm.DB, notifierEngine *notifier.NotificationEngine) *WorkerEngine {
+	return &WorkerEngine{
+		DB:       database,
+		Notifier: notifierEngine,
+	}
 }
 
 // ProcessHTTPCheck executes an HTTP uptime check for a monitor and handles incident state transitions.
@@ -70,7 +75,7 @@ func (w *WorkerEngine) ProcessHTTPCheck(payloadRaw []byte) error {
 	monitor.Status = newStatus
 	w.DB.Model(&monitor).Update("status", newStatus)
 
-	// State Transition: UP -> DOWN => Create Incident
+	// State Transition: UP -> DOWN => Create Incident & Dispatch Alert
 	if previousStatus != db.StatusDown && newStatus == db.StatusDown {
 		incident := db.Incident{
 			MonitorID: monitor.ID,
@@ -78,18 +83,23 @@ func (w *WorkerEngine) ProcessHTTPCheck(payloadRaw []byte) error {
 			Cause:     probeResult.ErrorMessage,
 			Status:    db.IncidentOpen,
 		}
-		w.DB.Create(&incident)
+		if err := w.DB.Create(&incident).Error; err == nil && w.Notifier != nil {
+			w.Notifier.NotifyIncidentCreated(monitor, incident, monitor.WebhookURL)
+		}
 	}
 
-	// State Transition: DOWN -> UP => Resolve Open Incidents
+	// State Transition: DOWN -> UP => Resolve Open Incidents & Dispatch Recovery Alert
 	if previousStatus == db.StatusDown && newStatus == db.StatusUp {
 		now := time.Now()
-		w.DB.Model(&db.Incident{}).
-			Where("monitor_id = ? AND status != ?", monitor.ID, db.IncidentResolved).
-			Updates(map[string]interface{}{
-				"status":      db.IncidentResolved,
-				"resolved_at": &now,
-			})
+		var openInc db.Incident
+		if err := w.DB.Where("monitor_id = ? AND status != ?", monitor.ID, db.IncidentResolved).First(&openInc).Error; err == nil {
+			openInc.Status = db.IncidentResolved
+			openInc.ResolvedAt = &now
+			w.DB.Save(&openInc)
+			if w.Notifier != nil {
+				w.Notifier.NotifyIncidentResolved(monitor, openInc, monitor.WebhookURL)
+			}
+		}
 	}
 
 	return nil

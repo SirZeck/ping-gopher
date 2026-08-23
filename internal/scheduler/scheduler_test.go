@@ -44,7 +44,7 @@ func TestSchedulerRunCheckCycle(t *testing.T) {
 		t.Fatalf("Failed to create monitor: %v", err)
 	}
 
-	workerEngine := worker.NewWorkerEngine(database)
+	workerEngine := worker.NewWorkerEngine(database, nil)
 	sched := NewScheduler(database, workerEngine)
 
 	err = sched.RunOnce(context.Background())
