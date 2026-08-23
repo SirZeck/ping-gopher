@@ -210,8 +210,10 @@ Configurations can be set via command-line flags or environment variables:
 PingGopher enforces a rigorous **Pre-Launch Code Auditing & Technical Remediation** system. Every major release undergoes automated and manual security reviews covering Server-Side Request Forgery (SSRF) defense, multi-tenant isolation, database WAL concurrency, memory DoS protection, and graceful process lifecycles.
 
 ### 📄 Versioned Audit & Remediation Records
-- 🛡️ **Audit Report**: [`docs/audit_report_v1.md`](docs/audit_report_v1.md) — Comprehensive pre-launch security & architecture audit.
-- 🛠️ **Remediation Report**: [`docs/remediation_report_v1.2.1.md`](docs/remediation_report_v1.2.1.md) — Itemized technical remediation breakdown for all 21 audit findings (v1.2.1).
+- 🛡️ **Audit Report v1**: [`docs/audit_report_v1.md`](docs/audit_report_v1.md) — Initial pre-launch security & architecture audit.
+- 🛡️ **Audit Report v2**: [`docs/audit_report_v2.md`](docs/audit_report_v2.md) — Senior Staff pre-launch second-pass audit.
+- 🛠️ **Remediation Report v1.2.1**: [`docs/remediation_report_v1.2.1.md`](docs/remediation_report_v1.2.1.md) — Itemized technical remediation breakdown for initial audit.
+- 🛠️ **Remediation Report v1.2.2**: [`docs/remediation_report_v1.2.2.md`](docs/remediation_report_v1.2.2.md) — Itemized technical remediation breakdown for second-pass audit (v1.2.2).
 
 ### ⚡ Engineering Standards & Hardening Guidelines
 - **SSRF Defense Engine**: All outgoing probe targets and webhooks are validated against private, loopback, and cloud IMDS CIDRs (`169.254.169.254`).
