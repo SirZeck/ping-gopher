@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/SirZeck/ping-gopher/internal/db"
 )
 
@@ -34,8 +35,32 @@ type PublicIncidentReport struct {
 
 // PublicStatusHandler returns an unauthenticated system operational summary for public status pages.
 func (h *APIHandler) PublicStatusHandler(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := r.URL.Query().Get("tenant_id")
+	if tenantIDStr == "" {
+		tenantIDStr = r.URL.Query().Get("user_id")
+	}
+
+	var targetUserID uuid.UUID
+	if tenantIDStr != "" {
+		if parsed, err := uuid.Parse(tenantIDStr); err == nil {
+			targetUserID = parsed
+		}
+	}
+
+	if targetUserID == uuid.Nil {
+		var defaultUser db.User
+		if err := h.DB.First(&defaultUser).Error; err == nil {
+			targetUserID = defaultUser.ID
+		}
+	}
+
 	var monitors []db.Monitor
-	if err := h.DB.Where("status != ?", db.StatusPaused).Find(&monitors).Error; err != nil {
+	query := h.DB.Where("status != ?", db.StatusPaused)
+	if targetUserID != uuid.Nil {
+		query = query.Where("user_id = ?", targetUserID)
+	}
+
+	if err := query.Find(&monitors).Error; err != nil {
 		JSONError(w, http.StatusInternalServerError, "Failed to query system status")
 		return
 	}
@@ -65,9 +90,15 @@ func (h *APIHandler) PublicStatusHandler(w http.ResponseWriter, r *http.Request)
 		systemStatus = "Partial System Outage"
 	}
 
-	// Fetch active incidents (OPEN or INVESTIGATING)
+	// Fetch active incidents scoped to target tenant
 	var incidents []db.Incident
-	h.DB.Preload("Monitor").Where("status != ?", db.IncidentResolved).Order("started_at desc").Find(&incidents)
+	incQuery := h.DB.Preload("Monitor").Joins("JOIN monitors ON monitors.id = incidents.monitor_id").Where("incidents.status != ?", db.IncidentResolved)
+	if targetUserID != uuid.Nil {
+		incQuery = incQuery.Where("monitors.user_id = ?", targetUserID)
+	}
+	if err := incQuery.Order("incidents.started_at desc").Find(&incidents).Error; err != nil {
+		// Log or suppress non-critical error
+	}
 
 	publicIncidents := make([]PublicIncidentReport, 0, len(incidents))
 	for _, inc := range incidents {
