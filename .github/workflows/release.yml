@@ -1,0 +1,41 @@
+name: Release Assets Builder
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build & Upload Release Binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build Binaries (Windows & Linux)
+        run: |
+          mkdir -p bin
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o bin/pinggopher-windows-amd64.exe ./cmd/pinggopher
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o bin/pinggopher-cli-windows-amd64.exe ./cmd/pinggopher-cli
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/pinggopher-linux-amd64 ./cmd/pinggopher
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/pinggopher-cli-linux-amd64 ./cmd/pinggopher-cli
+
+      - name: Upload Release Binaries to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/pinggopher-windows-amd64.exe
+            bin/pinggopher-cli-windows-amd64.exe
+            bin/pinggopher-linux-amd64
+            bin/pinggopher-cli-linux-amd64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
