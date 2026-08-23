@@ -28,10 +28,26 @@ func (n *NotificationEngine) NotifyIncidentCreated(monitor db.Monitor, incident 
 	}
 
 	go func() {
-		if err := SendWebhookAlert(webhookURL, payload, 10*time.Second); err != nil {
-			fmt.Printf("[NOTIFIER ERROR] Failed to send outage webhook alert: %v\n", err)
-		} else {
-			fmt.Printf("[NOTIFIER SUCCESS] Outage webhook alert dispatched for monitor '%s'\n", monitor.Name)
+		if webhookURL != "" {
+			if err := SendWebhookAlert(webhookURL, payload, 10*time.Second); err != nil {
+				fmt.Printf("[NOTIFIER ERROR] Failed to send outage webhook alert: %v\n", err)
+			} else {
+				fmt.Printf("[NOTIFIER SUCCESS] Outage webhook alert dispatched for monitor '%s'\n", monitor.Name)
+			}
+		}
+		if monitor.SlackWebhookURL != "" {
+			if err := SendSlackAlert(monitor.SlackWebhookURL, payload, 10*time.Second); err != nil {
+				fmt.Printf("[NOTIFIER ERROR] Failed to send Slack outage alert: %v\n", err)
+			} else {
+				fmt.Printf("[NOTIFIER SUCCESS] Slack outage alert dispatched for monitor '%s'\n", monitor.Name)
+			}
+		}
+		if monitor.DiscordWebhookURL != "" {
+			if err := SendDiscordAlert(monitor.DiscordWebhookURL, payload, 10*time.Second); err != nil {
+				fmt.Printf("[NOTIFIER ERROR] Failed to send Discord outage alert: %v\n", err)
+			} else {
+				fmt.Printf("[NOTIFIER SUCCESS] Discord outage alert dispatched for monitor '%s'\n", monitor.Name)
+			}
 		}
 	}()
 }
@@ -49,15 +65,31 @@ func (n *NotificationEngine) NotifyIncidentResolved(monitor db.Monitor, incident
 		MonitorName: monitor.Name,
 		TargetURL:   monitor.URL,
 		Status:      string(db.StatusUp),
-		Cause:       "Target recovered and is responding with HTTP 200 OK",
+		Cause:       "Target recovered and is responding normally",
 		Timestamp:   resolvedAt.Format(time.RFC3339),
 	}
 
 	go func() {
-		if err := SendWebhookAlert(webhookURL, payload, 10*time.Second); err != nil {
-			fmt.Printf("[NOTIFIER ERROR] Failed to send recovery webhook alert: %v\n", err)
-		} else {
-			fmt.Printf("[NOTIFIER SUCCESS] Recovery webhook alert dispatched for monitor '%s'\n", monitor.Name)
+		if webhookURL != "" {
+			if err := SendWebhookAlert(webhookURL, payload, 10*time.Second); err != nil {
+				fmt.Printf("[NOTIFIER ERROR] Failed to send recovery webhook alert: %v\n", err)
+			} else {
+				fmt.Printf("[NOTIFIER SUCCESS] Recovery webhook alert dispatched for monitor '%s'\n", monitor.Name)
+			}
+		}
+		if monitor.SlackWebhookURL != "" {
+			if err := SendSlackAlert(monitor.SlackWebhookURL, payload, 10*time.Second); err != nil {
+				fmt.Printf("[NOTIFIER ERROR] Failed to send Slack recovery alert: %v\n", err)
+			} else {
+				fmt.Printf("[NOTIFIER SUCCESS] Slack recovery alert dispatched for monitor '%s'\n", monitor.Name)
+			}
+		}
+		if monitor.DiscordWebhookURL != "" {
+			if err := SendDiscordAlert(monitor.DiscordWebhookURL, payload, 10*time.Second); err != nil {
+				fmt.Printf("[NOTIFIER ERROR] Failed to send Discord recovery alert: %v\n", err)
+			} else {
+				fmt.Printf("[NOTIFIER SUCCESS] Discord recovery alert dispatched for monitor '%s'\n", monitor.Name)
+			}
 		}
 	}()
 }

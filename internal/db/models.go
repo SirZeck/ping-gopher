@@ -54,6 +54,11 @@ type Monitor struct {
 	URL                  string        `gorm:"type:text;not null" json:"url"`
 	CheckIntervalSeconds int           `gorm:"default:60;not null" json:"check_interval_seconds"`
 	Status               MonitorStatus `gorm:"type:varchar(50);default:'PAUSED';not null" json:"status"`
+	Type                 string        `gorm:"type:varchar(50);default:'HTTP';not null" json:"type"`
+	ExpectedStatus       int           `gorm:"default:200" json:"expected_status,omitempty"`
+	ExpectedKeyword      string        `gorm:"type:varchar(255)" json:"expected_keyword,omitempty"`
+	SlackWebhookURL      string        `gorm:"type:text" json:"slack_webhook_url,omitempty"`
+	DiscordWebhookURL    string        `gorm:"type:text" json:"discord_webhook_url,omitempty"`
 	SSLExpirationDate    *time.Time    `gorm:"index" json:"ssl_expiration_date,omitempty"`
 	WebhookURL           string        `gorm:"type:text" json:"webhook_url,omitempty"`
 	IsPublic             bool          `gorm:"default:true;not null" json:"is_public"`

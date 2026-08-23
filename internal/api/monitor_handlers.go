@@ -15,7 +15,12 @@ type CreateMonitorRequest struct {
 	Name                 string `json:"name"`
 	URL                  string `json:"url"`
 	CheckIntervalSeconds int    `json:"check_interval_seconds"`
+	Type                 string `json:"type,omitempty"`
+	ExpectedStatus       int    `json:"expected_status,omitempty"`
+	ExpectedKeyword      string `json:"expected_keyword,omitempty"`
 	WebhookURL           string `json:"webhook_url,omitempty"`
+	SlackWebhookURL      string `json:"slack_webhook_url,omitempty"`
+	DiscordWebhookURL    string `json:"discord_webhook_url,omitempty"`
 	IsPublic             *bool  `json:"is_public,omitempty"`
 }
 
@@ -24,7 +29,12 @@ type UpdateMonitorRequest struct {
 	URL                  string           `json:"url,omitempty"`
 	CheckIntervalSeconds int              `json:"check_interval_seconds,omitempty"`
 	Status               db.MonitorStatus `json:"status,omitempty"`
+	Type                 string           `json:"type,omitempty"`
+	ExpectedStatus       int              `json:"expected_status,omitempty"`
+	ExpectedKeyword      string           `json:"expected_keyword,omitempty"`
 	WebhookURL           string           `json:"webhook_url,omitempty"`
+	SlackWebhookURL      string           `json:"slack_webhook_url,omitempty"`
+	DiscordWebhookURL    string           `json:"discord_webhook_url,omitempty"`
 	IsPublic             *bool            `json:"is_public,omitempty"`
 }
 
@@ -58,9 +68,31 @@ func (h *APIHandler) CreateMonitorHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
+	if req.SlackWebhookURL != "" {
+		if err := worker.ValidateSafeURL(req.SlackWebhookURL); err != nil {
+			JSONError(w, http.StatusBadRequest, fmt.Sprintf("Prohibited Slack webhook URL: %v", err))
+			return
+		}
+	}
+	if req.DiscordWebhookURL != "" {
+		if err := worker.ValidateSafeURL(req.DiscordWebhookURL); err != nil {
+			JSONError(w, http.StatusBadRequest, fmt.Sprintf("Prohibited Discord webhook URL: %v", err))
+			return
+		}
+	}
 
 	if req.CheckIntervalSeconds <= 0 {
 		req.CheckIntervalSeconds = 60
+	}
+
+	probeType := "HTTP"
+	if req.Type != "" {
+		probeType = req.Type
+	}
+
+	expectedStatus := 200
+	if req.ExpectedStatus > 0 {
+		expectedStatus = req.ExpectedStatus
 	}
 
 	isPublic := true
@@ -73,7 +105,12 @@ func (h *APIHandler) CreateMonitorHandler(w http.ResponseWriter, r *http.Request
 		Name:                 req.Name,
 		URL:                  req.URL,
 		CheckIntervalSeconds: req.CheckIntervalSeconds,
+		Type:                 probeType,
+		ExpectedStatus:       expectedStatus,
+		ExpectedKeyword:      req.ExpectedKeyword,
 		WebhookURL:           req.WebhookURL,
+		SlackWebhookURL:      req.SlackWebhookURL,
+		DiscordWebhookURL:    req.DiscordWebhookURL,
 		IsPublic:             isPublic,
 		Status:               db.StatusUp, // Enabled by default on creation
 	}
@@ -170,6 +207,29 @@ func (h *APIHandler) UpdateMonitorHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 		monitor.WebhookURL = req.WebhookURL
+	}
+	if req.SlackWebhookURL != "" {
+		if err := worker.ValidateSafeURL(req.SlackWebhookURL); err != nil {
+			JSONError(w, http.StatusBadRequest, fmt.Sprintf("Prohibited Slack webhook URL: %v", err))
+			return
+		}
+		monitor.SlackWebhookURL = req.SlackWebhookURL
+	}
+	if req.DiscordWebhookURL != "" {
+		if err := worker.ValidateSafeURL(req.DiscordWebhookURL); err != nil {
+			JSONError(w, http.StatusBadRequest, fmt.Sprintf("Prohibited Discord webhook URL: %v", err))
+			return
+		}
+		monitor.DiscordWebhookURL = req.DiscordWebhookURL
+	}
+	if req.Type != "" {
+		monitor.Type = req.Type
+	}
+	if req.ExpectedStatus > 0 {
+		monitor.ExpectedStatus = req.ExpectedStatus
+	}
+	if req.ExpectedKeyword != "" {
+		monitor.ExpectedKeyword = req.ExpectedKeyword
 	}
 	if req.CheckIntervalSeconds > 0 {
 		monitor.CheckIntervalSeconds = req.CheckIntervalSeconds

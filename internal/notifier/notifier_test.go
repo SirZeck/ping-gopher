@@ -115,3 +115,82 @@ func TestNotificationEngineOutageAndRecovery(t *testing.T) {
 		t.Fatalf("Timed out waiting for incident resolved alert")
 	}
 }
+
+func TestSendSlackAlert(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
+	receivedChan := make(chan SlackBlockKitPayload, 1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload SlackBlockKitPayload
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("Failed to decode Slack payload: %v", err)
+		}
+		receivedChan <- payload
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	payload := WebhookPayload{
+		Event:       "incident.open",
+		MonitorID:   uuid.New().String(),
+		MonitorName: "Slack Test Target",
+		TargetURL:   "https://slack.example.com",
+		Status:      "DOWN",
+		Cause:       "HTTP 503 Service Unavailable",
+		Timestamp:   time.Now().Format(time.RFC3339),
+	}
+
+	if err := SendSlackAlert(server.URL, payload, 5*time.Second); err != nil {
+		t.Fatalf("SendSlackAlert failed: %v", err)
+	}
+
+	select {
+	case rec := <-receivedChan:
+		if len(rec.Blocks) == 0 {
+			t.Fatalf("Expected non-empty Slack blocks payload")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("Timed out waiting for Slack webhook dispatch")
+	}
+}
+
+func TestSendDiscordAlert(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
+	receivedChan := make(chan DiscordWebhookPayload, 1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload DiscordWebhookPayload
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("Failed to decode Discord payload: %v", err)
+		}
+		receivedChan <- payload
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	payload := WebhookPayload{
+		Event:       "incident.resolved",
+		MonitorID:   uuid.New().String(),
+		MonitorName: "Discord Test Target",
+		TargetURL:   "https://discord.example.com",
+		Status:      "UP",
+		Cause:       "Service recovered",
+		Timestamp:   time.Now().Format(time.RFC3339),
+	}
+
+	if err := SendDiscordAlert(server.URL, payload, 5*time.Second); err != nil {
+		t.Fatalf("SendDiscordAlert failed: %v", err)
+	}
+
+	select {
+	case rec := <-receivedChan:
+		if len(rec.Embeds) == 0 {
+			t.Fatalf("Expected non-empty Discord embeds payload")
+		}
+		if rec.Embeds[0].Color != 0x2ECC71 {
+			t.Fatalf("Expected green embed color for recovery, got %x", rec.Embeds[0].Color)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("Timed out waiting for Discord webhook dispatch")
+	}
+}
