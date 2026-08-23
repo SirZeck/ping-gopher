@@ -88,9 +88,9 @@ func (h *APIHandler) PublicStatusHandler(w http.ResponseWriter, r *http.Request)
 		systemStatus = "Partial System Outage"
 	}
 
-	// Fetch active incidents scoped to target tenant
+	// Fetch active incidents scoped to target tenant and public monitors
 	var incidents []db.Incident
-	incQuery := h.DB.Preload("Monitor").Joins("JOIN monitors ON monitors.id = incidents.monitor_id").Where("incidents.status != ?", db.IncidentResolved)
+	incQuery := h.DB.Preload("Monitor").Joins("JOIN monitors ON monitors.id = incidents.monitor_id").Where("incidents.status != ? AND monitors.is_public = ?", db.IncidentResolved, true)
 	if targetUserID != uuid.Nil {
 		incQuery = incQuery.Where("monitors.user_id = ?", targetUserID)
 	}

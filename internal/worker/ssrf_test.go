@@ -49,6 +49,12 @@ func TestValidateSafeURL(t *testing.T) {
 			errType: ErrSSRFForbiddenIP,
 		},
 		{
+			name:    "Blocked: IPv4-Mapped IPv6 Metadata",
+			url:     "http://[::ffff:169.254.169.254]/latest/meta-data",
+			wantErr: true,
+			errType: ErrSSRFForbiddenIP,
+		},
+		{
 			name:    "Allowed: Valid Public HTTPS Target (httpbin.org)",
 			url:     "https://httpbin.org/status/200",
 			wantErr: false,

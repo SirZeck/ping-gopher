@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -31,7 +32,8 @@ func main() {
 	fmt.Printf("[INFO] Initializing PingGopher (Role: %s, DB: %s)\n", cfg.Role, cfg.DatabasePath)
 
 	if cfg.JWTSecret == "pinggopher-secret-key-change-in-prod" {
-		if os.Getenv("ENVIRONMENT") == "production" {
+		env := strings.ToLower(os.Getenv("ENVIRONMENT"))
+		if env == "production" || env == "prod" {
 			fmt.Println("[FATAL] Default insecure JWT secret detected in production environment! Set JWT_SECRET environment variable.")
 			os.Exit(1)
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -29,13 +30,55 @@ var globalAuthRateLimiter = &rateLimiter{
 	requests: make(map[string][]time.Time),
 }
 
+func init() {
+	// Background ticker to evict stale IP entries from memory map every 5 minutes
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		for range ticker.C {
+			globalAuthRateLimiter.mu.Lock()
+			now := time.Now()
+			cutoff := now.Add(-1 * time.Minute)
+			for ip, times := range globalAuthRateLimiter.requests {
+				hasRecent := false
+				for _, t := range times {
+					if t.After(cutoff) {
+						hasRecent = true
+						break
+					}
+				}
+				if !hasRecent {
+					delete(globalAuthRateLimiter.requests, ip)
+				}
+			}
+			globalAuthRateLimiter.mu.Unlock()
+		}
+	}()
+}
+
+func getClientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		if len(parts) > 0 {
+			ip := strings.TrimSpace(parts[0])
+			if ip != "" {
+				return ip
+			}
+		}
+	}
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+	clientIP := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(clientIP); err == nil {
+		clientIP = host
+	}
+	return clientIP
+}
+
 // RateLimitMiddleware enforces a sliding-window rate limit (requestsPerSec) per client IP address.
 func RateLimitMiddleware(requestsPerSec int, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		clientIP := r.RemoteAddr
-		if host, _, err := net.SplitHostPort(clientIP); err == nil {
-			clientIP = host
-		}
+		clientIP := getClientIP(r)
 
 		now := time.Now()
 		cutoff := now.Add(-1 * time.Second)
@@ -68,7 +111,11 @@ func RateLimitMiddleware(requestsPerSec int, next http.HandlerFunc) http.Handler
 // CORSMiddleware enables Cross-Origin Resource Sharing headers for Web Dashboard requests.
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGINS")
+		if allowedOrigin == "" {
+			allowedOrigin = "*"
+		}
+		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("X-Content-Type-Options", "nosniff")

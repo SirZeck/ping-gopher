@@ -25,7 +25,8 @@ services:
       - PORT=8080
       - DB_PATH=/app/data/pinggopher.db
       - REDIS_ADDR=redis:6379
-      - JWT_SECRET=pinggopher-super-secret-key
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - JWT_SECRET=${JWT_SECRET:-pinggopher-super-secret-key}
     volumes:
       - pinggopher-data:/app/data
     depends_on:

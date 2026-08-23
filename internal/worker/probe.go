@@ -1,9 +1,9 @@
 package worker
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"time"
@@ -124,32 +124,31 @@ func ExecuteSSLProbe(targetURL string, timeout time.Duration) *SSLProbeResult {
 
 	targetAddr := fmt.Sprintf("%s:%s", host, port)
 
-	dialer := &tls.Dialer{
-		NetDialer: &net.Dialer{
-			Timeout: timeout,
-		},
-		Config: &tls.Config{
-			InsecureSkipVerify: false, // Enforce strict TLS validation
-			ServerName:         host,
-		},
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	safeDialer := validator.SafeDialContext(timeout)
+	rawConn, err := safeDialer(ctx, "tcp", targetAddr)
+	if err != nil {
+		return &SSLProbeResult{
+			ErrorMessage: fmt.Sprintf("TLS Connection failed: %v", err),
+			IsValid:      false,
+		}
 	}
 
-	conn, err := dialer.Dial("tcp", targetAddr)
-	if err != nil {
+	tlsConn := tls.Client(rawConn, &tls.Config{
+		InsecureSkipVerify: false, // Enforce strict TLS validation
+		ServerName:         host,
+	})
+
+	if err := tlsConn.HandshakeContext(ctx); err != nil {
+		rawConn.Close()
 		return &SSLProbeResult{
 			ErrorMessage: fmt.Sprintf("TLS Handshake failed: %v", err),
 			IsValid:      false,
 		}
 	}
-	defer conn.Close()
-
-	tlsConn, ok := conn.(*tls.Conn)
-	if !ok {
-		return &SSLProbeResult{
-			ErrorMessage: "Failed to establish TLS connection",
-			IsValid:      false,
-		}
-	}
+	defer tlsConn.Close()
 
 	certs := tlsConn.ConnectionState().PeerCertificates
 	if len(certs) == 0 {
