@@ -183,12 +183,15 @@ document.addEventListener('DOMContentLoaded', () => {
     monitorGrid.innerHTML = monitors.map(m => {
       const statusClass = m.status === 'UP' ? 'badge-up' : (m.status === 'DOWN' ? 'badge-down' : 'badge-paused');
       const isPaused = m.status === 'PAUSED';
+      const probeType = m.type || 'HTTP';
+      const slackBadge = m.slack_webhook_url ? '<span class="badge" style="background: rgba(224, 30, 90, 0.2); color: #E01E5A; border: 1px solid rgba(224, 30, 90, 0.4); font-size: 0.7rem; padding: 0.15rem 0.4rem;">Slack</span>' : '';
+      const discordBadge = m.discord_webhook_url ? '<span class="badge" style="background: rgba(88, 101, 242, 0.2); color: #5865F2; border: 1px solid rgba(88, 101, 242, 0.4); font-size: 0.7rem; padding: 0.15rem 0.4rem;">Discord</span>' : '';
 
       return `
         <div class="glass-panel monitor-card">
           <div class="monitor-card-header">
             <div>
-              <div class="monitor-name">${escapeHTML(m.name)}</div>
+              <div class="monitor-name">${escapeHTML(m.name)} <span class="badge" style="background: rgba(255,255,255,0.08); color: var(--text-main); font-size: 0.7rem; padding: 0.15rem 0.4rem; margin-left: 0.3rem;">${probeType}</span></div>
               <div class="monitor-url">${escapeHTML(m.url)}</div>
             </div>
             <span class="badge ${statusClass}">
@@ -197,8 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
           </div>
 
-          <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-            Check Interval: <strong>${m.check_interval_seconds}s</strong>
+          <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+            <span>Interval: <strong>${m.check_interval_seconds}s</strong></span>
+            ${slackBadge}
+            ${discordBadge}
           </div>
 
           <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
@@ -227,10 +232,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const name = document.getElementById('monitor-name').value.trim();
     const url = document.getElementById('monitor-url').value.trim();
+    const type = document.getElementById('monitor-type').value;
     const check_interval_seconds = parseInt(document.getElementById('monitor-interval').value);
+    const expected_status = parseInt(document.getElementById('monitor-expected-status').value) || 200;
+    const expected_keyword = document.getElementById('monitor-keyword').value.trim();
+    const slack_webhook_url = document.getElementById('monitor-slack-webhook').value.trim();
+    const discord_webhook_url = document.getElementById('monitor-discord-webhook').value.trim();
 
     try {
-      await fetchAPI('/v1/monitors', 'POST', { name, url, check_interval_seconds });
+      await fetchAPI('/v1/monitors', 'POST', {
+        name,
+        url,
+        type,
+        check_interval_seconds,
+        expected_status,
+        expected_keyword,
+        slack_webhook_url,
+        discord_webhook_url
+      });
       addModal.classList.remove('active');
       fetchMonitors();
     } catch (err) {

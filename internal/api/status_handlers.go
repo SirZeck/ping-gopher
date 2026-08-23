@@ -22,6 +22,7 @@ type PublicStatusResponse struct {
 type PublicMonitorCard struct {
 	ID                   string           `json:"id"`
 	Name                 string           `json:"name"`
+	Type                 string           `json:"type"`
 	CheckIntervalSeconds int              `json:"check_interval_seconds"`
 	Status               db.MonitorStatus `json:"status"`
 	SSLExpirationDate    *time.Time       `json:"ssl_expiration_date,omitempty"`
@@ -91,6 +92,7 @@ func (h *APIHandler) PublicStatusHandler(w http.ResponseWriter, r *http.Request)
 		publicMonitors = append(publicMonitors, PublicMonitorCard{
 			ID:                   m.ID.String(),
 			Name:                 m.Name,
+			Type:                 m.Type,
 			CheckIntervalSeconds: m.CheckIntervalSeconds,
 			Status:               m.Status,
 			SSLExpirationDate:    m.SSLExpirationDate,

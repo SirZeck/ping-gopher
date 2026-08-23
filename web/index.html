@@ -97,12 +97,39 @@
           <input type="text" id="monitor-name" class="form-control" placeholder="e.g. Production API" required>
         </div>
         <div class="form-group">
-          <label for="monitor-url">Target URL</label>
-          <input type="url" id="monitor-url" class="form-control" placeholder="https://api.example.com/health" required>
+          <label for="monitor-type">Probe Type</label>
+          <select id="monitor-type" class="form-control">
+            <option value="HTTP" selected>HTTP / HTTPS Endpoint</option>
+            <option value="SSL">SSL / TLS Expiration Probe</option>
+            <option value="TCP">TCP Socket Connection</option>
+            <option value="DNS">DNS Resolution Lookup</option>
+          </select>
         </div>
         <div class="form-group">
-          <label for="monitor-interval">Check Interval (Seconds)</label>
-          <input type="number" id="monitor-interval" class="form-control" value="60" min="10" max="86400" required>
+          <label for="monitor-url">Target Host / URL</label>
+          <input type="text" id="monitor-url" class="form-control" placeholder="https://api.example.com/health or host:port" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="monitor-interval">Check Interval (s)</label>
+            <input type="number" id="monitor-interval" class="form-control" value="60" min="10" max="86400" required>
+          </div>
+          <div class="form-group">
+            <label for="monitor-expected-status">Expected HTTP Status</label>
+            <input type="number" id="monitor-expected-status" class="form-control" value="200" placeholder="200">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="monitor-keyword">Expected Keyword Assertion (Optional)</label>
+          <input type="text" id="monitor-keyword" class="form-control" placeholder="e.g. Operational or A/MX/TXT for DNS">
+        </div>
+        <div class="form-group">
+          <label for="monitor-slack-webhook">Slack Webhook Alert URL (Optional)</label>
+          <input type="url" id="monitor-slack-webhook" class="form-control" placeholder="https://hooks.slack.com/services/...">
+        </div>
+        <div class="form-group">
+          <label for="monitor-discord-webhook">Discord Webhook Alert URL (Optional)</label>
+          <input type="url" id="monitor-discord-webhook" class="form-control" placeholder="https://discord.com/api/webhooks/...">
         </div>
         <div id="add-error" class="hidden" style="color: var(--rose); font-size: 0.85rem; margin-bottom: 1rem;"></div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">

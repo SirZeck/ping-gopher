@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const badgeClass = isUp ? 'badge-up' : 'badge-down';
         return `
           <div class="glass-panel" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-weight: 600; font-size: 1.05rem;">${escapeHTML(m.name)}</div>
+            <div style="font-weight: 600; font-size: 1.05rem;">${escapeHTML(m.name)} <span class="badge" style="background: rgba(255,255,255,0.08); color: var(--text-main); font-size: 0.7rem; padding: 0.15rem 0.4rem; margin-left: 0.3rem;">${m.type || 'HTTP'}</span></div>
             <span class="badge ${badgeClass}">
               <span class="pulse-dot"></span>
               ${isUp ? 'Operational' : 'Service Outage'}
