@@ -109,7 +109,7 @@ func DoAPIRequest(method, serverURL, endpoint string, body interface{}, token st
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to server at %s: %w", url, err)
