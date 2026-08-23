@@ -117,6 +117,12 @@ PingGopher includes an official command-line client for terminal-based tenant au
 go install github.com/SirZeck/ping-gopher/cmd/pinggopher-cli@latest
 ```
 
+> [!TIP]
+> **Executing `pinggopher-cli` from any terminal window:**
+> Go installs binaries into `$(go env GOPATH)/bin` (`%USERPROFILE%\go\bin` on Windows).
+> - **Windows (PowerShell)**: `[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\go\bin", "User")`
+> - **Linux / macOS**: `export PATH=$PATH:$(go env GOPATH)/bin` (add to `~/.bashrc` or `~/.zshrc`).
+
 ### ⚡ Terminal Usage Examples
 
 ```bash

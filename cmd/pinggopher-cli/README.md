@@ -11,6 +11,12 @@
 go install github.com/SirZeck/ping-gopher/cmd/pinggopher-cli@latest
 ```
 
+> [!TIP]
+> **Enabling direct `pinggopher-cli` execution from any terminal window:**
+> Go installs binaries into `$(go env GOPATH)/bin` (`%USERPROFILE%\go\bin` on Windows).
+> - **Windows (PowerShell)**: Run `[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\go\bin", "User")`
+> - **Linux / macOS (Bash/Zsh)**: Add `export PATH=$PATH:$(go env GOPATH)/bin` to your `~/.bashrc` or `~/.zshrc`.
+
 ### Local Build
 ```bash
 make build-cli

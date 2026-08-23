@@ -82,6 +82,7 @@ func printUsage() {
 	fmt.Println("  pinggopher-cli monitor list")
 	fmt.Println("  pinggopher-cli monitor add --name \"Production API\" --url https://api.example.com --interval 30")
 	fmt.Println("  pinggopher-cli status")
+	fmt.Printf("\nTip: Ensure $(go env GOPATH)/bin (%%USERPROFILE%%\\go\\bin on Windows) is in your system PATH.\n")
 }
 
 func handleSignup(args []string) {
