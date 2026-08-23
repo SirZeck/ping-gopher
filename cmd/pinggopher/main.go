@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -40,14 +41,16 @@ func main() {
 	sched := scheduler.NewScheduler(database, workerEngine)
 	apiHandler := api.NewAPIHandler(database, cfg)
 
+	var server *http.Server
+
 	// Boot active role modules
 	switch cfg.Role {
 	case "all":
-		go startAPIRole(cfg, apiHandler)
+		server = startAPIRole(cfg, apiHandler)
 		startWorkerRole(cfg, workerEngine)
 		startSchedulerRole(cfg, sched)
 	case "api":
-		startAPIRole(cfg, apiHandler)
+		server = startAPIRole(cfg, apiHandler)
 	case "worker":
 		startWorkerRole(cfg, workerEngine)
 	case "scheduler":
@@ -63,13 +66,25 @@ func main() {
 	sig := <-sigChan
 
 	fmt.Printf("\n[INFO] Received signal '%v'. Gracefully shutting down PingGopher...\n", sig)
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if server != nil {
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			fmt.Printf("[WARN] HTTP Server graceful shutdown error: %v\n", err)
+		} else {
+			fmt.Println("[INFO] HTTP Server stopped gracefully.")
+		}
+	}
+
 	if cfg.Role == "all" || cfg.Role == "scheduler" {
 		sched.Stop()
 	}
 	fmt.Println("[INFO] PingGopher stopped cleanly.")
 }
 
-func startAPIRole(cfg *config.Config, handler *api.APIHandler) {
+func startAPIRole(cfg *config.Config, handler *api.APIHandler) *http.Server {
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	fmt.Printf("[ROLE: API] Starting REST API Server on %s...\n", addr)
 
@@ -81,9 +96,13 @@ func startAPIRole(cfg *config.Config, handler *api.APIHandler) {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		fmt.Printf("[FATAL] API Server failed: %v\n", err)
-	}
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("[FATAL] API Server failed: %v\n", err)
+		}
+	}()
+
+	return server
 }
 
 func startWorkerRole(cfg *config.Config, engine *worker.WorkerEngine) {
