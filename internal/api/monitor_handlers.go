@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	"github.com/pinggopher/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/db"
 )
 
 type CreateMonitorRequest struct {

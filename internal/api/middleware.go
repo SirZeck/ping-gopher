@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/pinggopher/ping-gopher/internal/auth"
+	"github.com/SirZeck/ping-gopher/internal/auth"
 )
 
 type contextKey string

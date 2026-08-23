@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/pinggopher/ping-gopher/web"
+	"github.com/SirZeck/ping-gopher/web"
 )
 
 // SetupRouter initializes the HTTP router and registers all public and authenticated REST endpoints.

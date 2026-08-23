@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pinggopher/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/db"
 )
 
 // NotificationEngine manages multi-channel alert dispatches for incidents.

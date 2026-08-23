@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pinggopher/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/db"
 )
 
 func TestExecuteHTTPProbeSuccess(t *testing.T) {

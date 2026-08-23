@@ -1,4 +1,4 @@
-module github.com/pinggopher/ping-gopher
+module github.com/SirZeck/ping-gopher
 
 go 1.25.0
 

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pinggopher/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/db"
 )
 
 type PublicStatusResponse struct {

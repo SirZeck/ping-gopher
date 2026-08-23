@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/pinggopher/ping-gopher/internal/config"
-	"github.com/pinggopher/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/config"
+	"github.com/SirZeck/ping-gopher/internal/db"
 )
 
 func setupTestAPI(t *testing.T) (*httptest.Server, *APIHandler, func()) {

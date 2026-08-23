@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pinggopher/ping-gopher/internal/db"
-	"github.com/pinggopher/ping-gopher/internal/worker"
+	"github.com/SirZeck/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/worker"
 	"gorm.io/gorm"
 )
 

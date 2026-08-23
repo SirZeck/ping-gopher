@@ -8,11 +8,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pinggopher/ping-gopher/internal/api"
-	"github.com/pinggopher/ping-gopher/internal/config"
-	"github.com/pinggopher/ping-gopher/internal/db"
-	"github.com/pinggopher/ping-gopher/internal/scheduler"
-	"github.com/pinggopher/ping-gopher/internal/worker"
+	"github.com/SirZeck/ping-gopher/internal/api"
+	"github.com/SirZeck/ping-gopher/internal/config"
+	"github.com/SirZeck/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/scheduler"
+	"github.com/SirZeck/ping-gopher/internal/worker"
 )
 
 const banner = `

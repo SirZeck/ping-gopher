@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pinggopher/ping-gopher/internal/auth"
-	"github.com/pinggopher/ping-gopher/internal/config"
-	"github.com/pinggopher/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/auth"
+	"github.com/SirZeck/ping-gopher/internal/config"
+	"github.com/SirZeck/ping-gopher/internal/db"
 	"gorm.io/gorm"
 )
 
