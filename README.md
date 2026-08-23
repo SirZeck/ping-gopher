@@ -210,15 +210,16 @@ Configurations can be set via command-line flags or environment variables:
 PingGopher enforces a rigorous **Pre-Launch Code Auditing & Technical Remediation** system. Every major release undergoes automated and manual security reviews covering Server-Side Request Forgery (SSRF) defense, multi-tenant isolation, database WAL concurrency, memory DoS protection, and graceful process lifecycles.
 
 ### 📄 Versioned Audit & Remediation Records
+- 🚀 **GA Release v1.0.0**: [`docs/remediation_report_v1.0.0.md`](docs/remediation_report_v1.0.0.md) — **OFFICIAL PRODUCTION GENERAL AVAILABILITY RELEASE**.
 - ✅ **Final Audit Approval Report**: [`docs/audit_report_final.md`](docs/audit_report_final.md) — **APPROVED FOR PRODUCTION LAUNCH**.
 - 🛡️ **Audit Report v1**: [`docs/audit_report_v1.md`](docs/audit_report_v1.md) — Initial pre-launch security & architecture audit.
 - 🛡️ **Audit Report v2**: [`docs/audit_report_v2.md`](docs/audit_report_v2.md) — Senior Staff pre-launch second-pass audit.
 - 🛡️ **Audit Report v3**: [`docs/audit_report_v3.md`](docs/audit_report_v3.md) — Senior Staff pre-launch verification audit.
 - 🛡️ **Audit Report v4**: [`docs/audit_report_v4_adversarial.md`](docs/audit_report_v4_adversarial.md) — Independent Senior Security Engineer adversarial re-audit.
-- 🛠️ **Remediation Report v1.2.1**: [`docs/remediation_report_v1.2.1.md`](docs/remediation_report_v1.2.1.md) — Remediation breakdown for initial audit.
-- 🛠️ **Remediation Report v1.2.2**: [`docs/remediation_report_v1.2.2.md`](docs/remediation_report_v1.2.2.md) — Remediation breakdown for second-pass audit (v1.2.2).
-- 🛠️ **Remediation Report v1.2.3**: [`docs/remediation_report_v1.2.3.md`](docs/remediation_report_v1.2.3.md) — Technical remediation report for verification audit (v1.2.3).
-- 🛠️ **Remediation Report v1.2.4**: [`docs/remediation_report_v1.2.4.md`](docs/remediation_report_v1.2.4.md) — Technical remediation report for adversarial re-audit (v1.2.4).
+- 🛠️ **Remediation Report v0.1.0**: [`docs/remediation_report_v1.2.1.md`](docs/remediation_report_v1.2.1.md) — Pre-release remediation breakdown for initial audit.
+- 🛠️ **Remediation Report v0.2.0**: [`docs/remediation_report_v1.2.2.md`](docs/remediation_report_v1.2.2.md) — Pre-release remediation breakdown for second-pass audit.
+- 🛠️ **Remediation Report v0.3.0**: [`docs/remediation_report_v1.2.3.md`](docs/remediation_report_v1.2.3.md) — Pre-release remediation report for verification audit.
+- 🛠️ **Remediation Report v0.4.0**: [`docs/remediation_report_v1.2.4.md`](docs/remediation_report_v1.2.4.md) — Pre-release remediation report for adversarial re-audit.
 
 ### ⚡ Engineering Standards & Hardening Guidelines
 - **SSRF Defense Engine**: All outgoing probe targets and webhooks are validated against private, loopback, and cloud IMDS CIDRs (`169.254.169.254`).
