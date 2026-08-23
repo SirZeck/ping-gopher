@@ -94,17 +94,28 @@ func init() {
 
 // ValidateSafeURL checks if a target URL is safe for synthetic probing and protects against SSRF attacks.
 func ValidateSafeURL(targetURL string) error {
-	parsedURL, err := url.Parse(targetURL)
+	rawURL := targetURL
+	if !strings.Contains(rawURL, "://") {
+		rawURL = "https://" + rawURL
+	}
+
+	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return fmt.Errorf("invalid URL structure: %w", err)
 	}
 
 	scheme := strings.ToLower(parsedURL.Scheme)
-	if scheme != "http" && scheme != "https" {
+	if scheme != "http" && scheme != "https" && scheme != "tcp" && scheme != "dns" {
 		return ErrInvalidScheme
 	}
 
 	host := parsedURL.Hostname()
+	if host == "" {
+		host = parsedURL.Host
+		if idx := strings.Index(host, ":"); idx != -1 {
+			host = host[:idx]
+		}
+	}
 	if host == "" {
 		return ErrEmptyHost
 	}
