@@ -22,6 +22,9 @@
 ### 3. Hosted Public Status Page (`/status.html`)
 ![PingGopher Public Status Page](assets/status.png)
 
+### 4. Official Terminal CLI Control Tool (`pinggopher-cli`)
+![PingGopher CLI Tool Preview](assets/pinggopher-cli.png)
+
 ---
 
 ## 📂 Project Structure
@@ -111,6 +114,8 @@ Run any node type using runtime CLI flags or environment variables:
 ## 💻 Official CLI Tool (`pinggopher-cli`)
 
 PingGopher includes an official command-line client for terminal-based tenant authentication, monitor CRUD management, public status checking, and probe latency inspection.
+
+![PingGopher CLI Tool Preview](assets/pinggopher-cli.png)
 
 ### 📥 Installation via `go install`
 ```bash
