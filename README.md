@@ -227,6 +227,7 @@ PingGopher enforces a rigorous **Pre-Launch Code Auditing & Technical Remediatio
 - **Multi-Tenant Data Isolation**: All API endpoints and public status pages query data strictly scoped to tenant IDs.
 - **Graceful Lifecycle Shutdown**: HTTP servers and scheduler loops listen for OS signals (`SIGINT`/`SIGTERM`) and drain connections cleanly via `server.Shutdown(ctx)`.
 - **Container Hardening**: Docker builds run under a non-privileged system user (`USER appuser`) with native container `HEALTHCHECK` probes.
+- **Git Flow & Release Model**: Structured branching strategy (`main`, `develop`, `feature/*`, `release/*`). See [`docs/branching_and_release_strategy.md`](docs/branching_and_release_strategy.md).
 
 ---
 
