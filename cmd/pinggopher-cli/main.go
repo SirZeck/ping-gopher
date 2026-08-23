@@ -26,6 +26,7 @@ type Monitor struct {
 	ID                   string `json:"id"`
 	Name                 string `json:"name"`
 	URL                  string `json:"url"`
+	Type                 string `json:"type"`
 	Status               string `json:"status"`
 	CheckIntervalSeconds int    `json:"check_interval_seconds"`
 }
@@ -270,14 +271,18 @@ func handleMonitor(args []string) {
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-		fmt.Fprintln(w, "ID\tNAME\tTARGET URL\tSTATUS\tINTERVAL")
-		fmt.Fprintln(w, "--\t----\t----------\t------\t--------")
+		fmt.Fprintln(w, "ID\tNAME\tTARGET URL\tTYPE\tSTATUS\tINTERVAL")
+		fmt.Fprintln(w, "--\t----\t----------\t----\t------\t--------")
 		for _, m := range monitors {
 			idDisplay := m.ID
 			if len(m.ID) > 8 {
 				idDisplay = m.ID[:8]
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%ds\n", idDisplay, m.Name, m.URL, m.Status, m.CheckIntervalSeconds)
+			probeType := m.Type
+			if probeType == "" {
+				probeType = "HTTP"
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%ds\n", idDisplay, m.Name, m.URL, probeType, m.Status, m.CheckIntervalSeconds)
 		}
 		w.Flush()
 
@@ -285,7 +290,12 @@ func handleMonitor(args []string) {
 		fs := flag.NewFlagSet("add", flag.ExitOnError)
 		name := fs.String("name", "", "Target Monitor Name")
 		url := fs.String("url", "", "Target Monitor URL")
+		probeType := fs.String("type", "HTTP", "Probe Type (HTTP, SSL, TCP, DNS)")
 		interval := fs.Int("interval", 60, "Check Interval in Seconds")
+		expectedStatus := fs.Int("expected-status", 0, "Expected HTTP Status Code (optional)")
+		expectedKeyword := fs.String("expected-keyword", "", "Expected Keyword Assertion (optional)")
+		slackWebhook := fs.String("slack-webhook", "", "Slack Webhook Alert URL (optional)")
+		discordWebhook := fs.String("discord-webhook", "", "Discord Webhook Alert URL (optional)")
 		fs.Parse(subArgs)
 
 		if *name == "" || *url == "" {
@@ -297,7 +307,20 @@ func handleMonitor(args []string) {
 		payload := map[string]interface{}{
 			"name":                   *name,
 			"url":                    *url,
+			"type":                   *probeType,
 			"check_interval_seconds": *interval,
+		}
+		if *expectedStatus > 0 {
+			payload["expected_status"] = *expectedStatus
+		}
+		if *expectedKeyword != "" {
+			payload["expected_keyword"] = *expectedKeyword
+		}
+		if *slackWebhook != "" {
+			payload["slack_webhook_url"] = *slackWebhook
+		}
+		if *discordWebhook != "" {
+			payload["discord_webhook_url"] = *discordWebhook
 		}
 
 		env, err := DoAPIRequest("POST", creds.ServerURL, "/v1/monitors", payload, creds.Token)
@@ -308,7 +331,7 @@ func handleMonitor(args []string) {
 
 		var created Monitor
 		json.Unmarshal(env.Data, &created)
-		fmt.Printf("[SUCCESS] Created target monitor '%s' (ID: %s)\n", created.Name, created.ID)
+		fmt.Printf("[SUCCESS] Created target monitor '%s' (Type: %s, ID: %s)\n", created.Name, created.Type, created.ID)
 
 	case "delete":
 		fs := flag.NewFlagSet("delete", flag.ExitOnError)
