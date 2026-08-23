@@ -18,6 +18,8 @@ bin/
 *.log
 *.out
 *.prof
+coverage
+coverage.out
 
 # IDE & OS files
 .idea/
