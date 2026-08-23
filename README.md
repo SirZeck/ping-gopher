@@ -103,9 +103,11 @@ Run any node type using runtime CLI flags or environment variables:
 
 ## ✨ Key Features
 
-- 🌐 **External Synthetic Uptime Monitoring**: Measures HTTP response codes, latency (ms), and SSL certificate expiration.
+- 🔔 **Multi-Channel Alert Engine**: Instant outage & recovery notifications dispatched via **Slack Block-Kit JSON** and **Discord Embed cards**.
+- ⚡ **Advanced Synthetic Probes**: Supports **HTTP/HTTPS**, **SSL/TLS Expiration**, **TCP Socket Connection** (Postgres, Redis, SSH), and **DNS Resolution** (A, AAAA, MX, TXT).
+- 🎯 **HTTP & Content Assertions**: Asserts exact HTTP status code expectations (200, 201) and response body keyword matches.
 - ⚡ **Powered by `gopher-queue`**: Leverages server-side Redis Lua scripts, atomic leasing, watchdog supervisor failover, and exponential retries.
-- 🛡️ **Anti-Alert Fatigue**: Smart escalation logic using retry windows before dispatching alerts.
+- 🛡️ **Anti-Alert Fatigue & SSRF Protection**: Smart escalation retry windows and strict IP/CIDR blocklist validation against SSRF and Cloud IMDS attacks.
 - 📊 **Multi-Tenant Data Models**: Built-in GORM schema for Users, Monitors, Latency Logs, and Outage Incidents.
 - 🚀 **Zero-Dependency Local Storage**: Runs out of the box with embedded CGO-free SQLite for local development and PostgreSQL support for production.
 
@@ -143,8 +145,10 @@ pinggopher-cli status
 # 3. List active monitor targets in formatted ASCII table
 pinggopher-cli monitor list
 
-# 4. Add a new target monitor directly from the terminal
-pinggopher-cli monitor add --name "Production API" --url "https://api.example.com/health" --interval 30
+# 4. Add HTTP, TCP, or DNS synthetic probes directly from terminal
+pinggopher-cli monitor add --name "Postgres TCP Probe" --url "db.example.com:5432" --type TCP --interval 15
+pinggopher-cli monitor add --name "Google DNS Lookup" --url "google.com" --type DNS --expected-keyword A --interval 30
+pinggopher-cli monitor add --name "Payment API" --url "https://api.example.com/health" --type HTTP --expected-status 200 --slack-webhook "https://hooks.slack.com/services/..."
 
 # 5. Inspect probe latency response history logs
 pinggopher-cli logs --id <MONITOR_ID> --limit 20
@@ -210,6 +214,7 @@ Configurations can be set via command-line flags or environment variables:
 PingGopher enforces a rigorous **Pre-Launch Code Auditing & Technical Remediation** system. Every major release undergoes automated and manual security reviews covering Server-Side Request Forgery (SSRF) defense, multi-tenant isolation, database WAL concurrency, memory DoS protection, and graceful process lifecycles.
 
 ### 📄 Versioned Audit & Remediation Records
+- 🔔 **Feature Release v1.1.0**: [`docs/remediation_report_v1.1.0.md`](docs/remediation_report_v1.1.0.md) — **MULTI-CHANNEL ALERTING (SLACK & DISCORD) & ADVANCED SYNTHETIC PROBES (TCP, DNS, HTTP ASSERTIONS)**.
 - 🚀 **GA Release v1.0.0**: [`docs/remediation_report_v1.0.0.md`](docs/remediation_report_v1.0.0.md) — **OFFICIAL PRODUCTION GENERAL AVAILABILITY RELEASE**.
 - ✅ **Final Audit Approval Report**: [`docs/audit_report_final.md`](docs/audit_report_final.md) — **APPROVED FOR PRODUCTION LAUNCH**.
 - 🛡️ **Audit Report v1**: [`docs/audit_report_v1.md`](docs/audit_report_v1.md) — Initial pre-launch security & architecture audit.
