@@ -33,7 +33,8 @@ ping-gopher/
 ├── assets/               # Repository preview screenshots & media assets
 ├── bin/                  # Pre-compiled cross-platform static binaries
 ├── cmd/
-│   └── pinggopher/       # Main binary entrypoint & multi-role launcher
+│   ├── pinggopher/       # Main server binary entrypoint & multi-role launcher
+│   └── pinggopher-cli/   # Official CLI tool client (terminal control)
 ├── internal/
 │   ├── api/              # REST API handlers, router & middleware
 │   ├── auth/             # Password security (Bcrypt) & JWT token engine
