@@ -32,6 +32,9 @@ jobs:
       - name: Upload Release Binaries to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: "PingGopher v1.1.0 — Multi-Channel Alerting & Advanced Synthetic Probes 🚀"
+          body_path: docs/remediation_report_v1.1.0.md
+          make_latest: true
           files: |
             bin/pinggopher-windows-amd64.exe
             bin/pinggopher-cli-windows-amd64.exe
