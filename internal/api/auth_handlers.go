@@ -48,6 +48,11 @@ func (h *APIHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len([]byte(req.Password)) > 72 {
+		JSONError(w, http.StatusBadRequest, "Password cannot exceed 72 bytes")
+		return
+	}
+
 	// Check if user already exists
 	var existing db.User
 	if err := h.DB.Where("email = ?", req.Email).First(&existing).Error; err == nil {
@@ -93,6 +98,11 @@ func (h *APIHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		JSONError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if len([]byte(req.Password)) > 72 {
+		JSONError(w, http.StatusBadRequest, "Password cannot exceed 72 bytes")
 		return
 	}
 

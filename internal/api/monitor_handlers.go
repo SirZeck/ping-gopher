@@ -217,9 +217,15 @@ func (h *APIHandler) GetMonitorLogsHandler(w http.ResponseWriter, r *http.Reques
 			limit = parsedLimit
 		}
 	}
+	if limit > 500 {
+		limit = 500
+	}
 
 	var logs []db.PingLog
-	h.DB.Where("monitor_id = ?", monitorID).Order("created_at desc").Limit(limit).Find(&logs)
+	if err := h.DB.Where("monitor_id = ?", monitorID).Order("created_at desc").Limit(limit).Find(&logs).Error; err != nil {
+		JSONError(w, http.StatusInternalServerError, "Failed to query monitor logs")
+		return
+	}
 
 	JSONResponse(w, http.StatusOK, logs)
 }
