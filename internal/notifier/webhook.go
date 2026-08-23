@@ -19,6 +19,17 @@ type WebhookPayload struct {
 	Timestamp   string `json:"timestamp"`    // ISO-8601 timestamp
 }
 
+var sharedWebhookTransport = &http.Transport{
+	MaxIdleConns:        100,
+	MaxIdleConnsPerHost: 20,
+	IdleConnTimeout:     90 * time.Second,
+}
+
+var sharedWebhookClient = &http.Client{
+	Timeout:   10 * time.Second,
+	Transport: sharedWebhookTransport,
+}
+
 // SendWebhookAlert dispatches a JSON POST payload to a configured webhook URL.
 func SendWebhookAlert(webhookURL string, payload WebhookPayload, timeout time.Duration) error {
 	if webhookURL == "" {
@@ -34,7 +45,13 @@ func SendWebhookAlert(webhookURL string, payload WebhookPayload, timeout time.Du
 		return fmt.Errorf("failed to marshal webhook payload: %w", err)
 	}
 
-	client := &http.Client{Timeout: timeout}
+	client := sharedWebhookClient
+	if timeout != 10*time.Second {
+		client = &http.Client{
+			Timeout:   timeout,
+			Transport: sharedWebhookTransport,
+		}
+	}
 	req, err := http.NewRequest("POST", webhookURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("failed to create webhook request: %w", err)

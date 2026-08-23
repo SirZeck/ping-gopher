@@ -78,7 +78,14 @@ func (s *Scheduler) RunCheckCycle() {
 		return
 	}
 
+	now := time.Now()
 	for _, m := range monitors {
+		// Respect monitor's configured check_interval_seconds unless it's a new monitor never checked
+		isNewMonitor := m.UpdatedAt.IsZero() || m.UpdatedAt.Equal(m.CreatedAt)
+		if !isNewMonitor && now.Sub(m.UpdatedAt) < time.Duration(m.CheckIntervalSeconds)*time.Second {
+			continue
+		}
+
 		payload := worker.CheckPayload{
 			MonitorID: m.ID.String(),
 			TargetURL: m.URL,
@@ -90,12 +97,14 @@ func (s *Scheduler) RunCheckCycle() {
 			continue
 		}
 
-		// Dispatch probe execution asynchronously
-		go func(p []byte) {
+		// Track probe execution goroutine in WaitGroup for graceful shutdown
+		s.wg.Add(1)
+		go func(p []byte, monitorID string) {
+			defer s.wg.Done()
 			if err := s.WorkerEngine.ProcessHTTPCheck(p); err != nil {
-				fmt.Printf("[SCHEDULER ERROR] Probe execution failed: %v\n", err)
+				fmt.Printf("[SCHEDULER ERROR] Probe execution failed for monitor %s: %v\n", monitorID, err)
 			}
-		}(payloadBytes)
+		}(payloadBytes, m.ID.String())
 	}
 }
 

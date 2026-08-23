@@ -26,6 +26,20 @@ type SSLProbeResult struct {
 	IsValid        bool
 }
 
+var sharedHTTPTransport = &http.Transport{
+	MaxIdleConns:        100,
+	MaxIdleConnsPerHost: 20,
+	IdleConnTimeout:     90 * time.Second,
+}
+
+var sharedHTTPClient = &http.Client{
+	Timeout: 10 * time.Second,
+	Transport: sharedHTTPTransport,
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
+}
+
 // ExecuteHTTPProbe performs a synthetic HTTP/HTTPS probe against targetURL with timeout and SSRF protection.
 func ExecuteHTTPProbe(targetURL string, timeout time.Duration) *HTTPProbeResult {
 	if timeout <= 0 {
@@ -41,12 +55,13 @@ func ExecuteHTTPProbe(targetURL string, timeout time.Duration) *HTTPProbeResult 
 		}
 	}
 
-	client := &http.Client{
-		Timeout: timeout,
-		// Do not follow redirects automatically so we capture exact target response codes
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
+	client := sharedHTTPClient
+	if timeout != 10*time.Second {
+		client = &http.Client{
+			Timeout:       timeout,
+			Transport:     sharedHTTPTransport,
+			CheckRedirect: sharedHTTPClient.CheckRedirect,
+		}
 	}
 
 	startTime := time.Now()
