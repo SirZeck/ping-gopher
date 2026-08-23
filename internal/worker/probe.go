@@ -4,8 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/SirZeck/ping-gopher/internal/validator"
@@ -172,5 +175,150 @@ func ExecuteSSLProbe(targetURL string, timeout time.Duration) *SSLProbeResult {
 		DaysRemaining:  daysRemaining,
 		Issuer:         issuer,
 		IsValid:        daysRemaining > 0,
+	}
+}
+
+// ExecuteHTTPAssertionProbe performs an HTTP check validating exact expected status codes and body keyword assertions.
+func ExecuteHTTPAssertionProbe(targetURL string, expectedStatus int, expectedKeyword string, timeout time.Duration) *HTTPProbeResult {
+	result := ExecuteHTTPProbe(targetURL, timeout)
+	if !result.IsUp {
+		return result
+	}
+
+	if expectedStatus > 0 && result.StatusCode != expectedStatus {
+		result.IsUp = false
+		result.ErrorMessage = fmt.Sprintf("HTTP status assertion failed: expected %d, got %d", expectedStatus, result.StatusCode)
+		return result
+	}
+
+	if expectedKeyword != "" {
+		client := sharedHTTPClient
+		if timeout > 0 && timeout != 10*time.Second {
+			client = &http.Client{
+				Timeout:       timeout,
+				Transport:     sharedHTTPTransport,
+				CheckRedirect: sharedHTTPClient.CheckRedirect,
+			}
+		}
+		resp, err := client.Get(targetURL)
+		if err == nil {
+			defer resp.Body.Close()
+			bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+			if err == nil && !strings.Contains(string(bodyBytes), expectedKeyword) {
+				result.IsUp = false
+				result.ErrorMessage = fmt.Sprintf("HTTP body assertion failed: keyword '%s' not found in response", expectedKeyword)
+			}
+		}
+	}
+
+	return result
+}
+
+// ExecuteTCPProbe dials a TCP socket connection with connect-time SSRF validation and measures latency.
+func ExecuteTCPProbe(targetAddr string, timeout time.Duration) *HTTPProbeResult {
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+
+	// Add default port 80 if missing
+	host, port, err := net.SplitHostPort(targetAddr)
+	if err != nil {
+		host = targetAddr
+		port = "80"
+		targetAddr = fmt.Sprintf("%s:%s", host, port)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	safeDialer := validator.SafeDialContext(timeout)
+	startTime := time.Now()
+	conn, err := safeDialer(ctx, "tcp", targetAddr)
+	duration := time.Since(startTime)
+
+	if err != nil {
+		return &HTTPProbeResult{
+			StatusCode:     0,
+			ResponseTimeMS: int(duration.Milliseconds()),
+			ErrorMessage:   fmt.Sprintf("TCP Connection failed to %s: %v", targetAddr, err),
+			IsUp:           false,
+		}
+	}
+	defer conn.Close()
+
+	return &HTTPProbeResult{
+		StatusCode:     200,
+		ResponseTimeMS: int(duration.Milliseconds()),
+		IsUp:           true,
+	}
+}
+
+// ExecuteDNSProbe resolves domain records (A, AAAA, MX, TXT) and measures lookup latency.
+func ExecuteDNSProbe(domain string, recordType string, timeout time.Duration) *HTTPProbeResult {
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+
+	domain = strings.TrimPrefix(domain, "http://")
+	domain = strings.TrimPrefix(domain, "https://")
+	if idx := strings.Index(domain, "/"); idx != -1 {
+		domain = domain[:idx]
+	}
+	if host, _, err := net.SplitHostPort(domain); err == nil {
+		domain = host
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	startTime := time.Now()
+	var err error
+	var recordsCount int
+
+	switch strings.ToUpper(recordType) {
+	case "AAAA":
+		var ips []net.IPAddr
+		ips, err = net.DefaultResolver.LookupIPAddr(ctx, domain)
+		for _, ip := range ips {
+			if ip.IP.To4() == nil {
+				recordsCount++
+			}
+		}
+	case "MX":
+		var mxs []*net.MX
+		mxs, err = net.DefaultResolver.LookupMX(ctx, domain)
+		recordsCount = len(mxs)
+	case "TXT":
+		var txts []string
+		txts, err = net.DefaultResolver.LookupTXT(ctx, domain)
+		recordsCount = len(txts)
+	default: // Default "A" record
+		var ips []net.IPAddr
+		ips, err = net.DefaultResolver.LookupIPAddr(ctx, domain)
+		for _, ip := range ips {
+			if ip.IP.To4() != nil {
+				recordsCount++
+			}
+		}
+	}
+	duration := time.Since(startTime)
+
+	if err != nil || recordsCount == 0 {
+		errMsg := "No DNS records found"
+		if err != nil {
+			errMsg = err.Error()
+		}
+		return &HTTPProbeResult{
+			StatusCode:     0,
+			ResponseTimeMS: int(duration.Milliseconds()),
+			ErrorMessage:   fmt.Sprintf("DNS lookup failed for %s (%s): %s", domain, recordType, errMsg),
+			IsUp:           false,
+		}
+	}
+
+	return &HTTPProbeResult{
+		StatusCode:     200,
+		ResponseTimeMS: int(duration.Milliseconds()),
+		IsUp:           true,
 	}
 }

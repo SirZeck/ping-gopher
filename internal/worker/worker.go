@@ -3,6 +3,7 @@ package worker
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,8 +50,31 @@ func (w *WorkerEngine) ProcessHTTPCheck(payloadRaw []byte) error {
 		return fmt.Errorf("monitor not found in database: %w", err)
 	}
 
-	// 2. Execute HTTP Probe
-	probeResult := ExecuteHTTPProbe(monitor.URL, 10*time.Second)
+	// 2. Execute Probe based on Type (HTTP, SSL, TCP, DNS)
+	var probeResult *HTTPProbeResult
+	switch strings.ToUpper(monitor.Type) {
+	case "TCP":
+		probeResult = ExecuteTCPProbe(monitor.URL, 10*time.Second)
+	case "DNS":
+		recordType := monitor.ExpectedKeyword
+		if recordType == "" {
+			recordType = "A"
+		}
+		probeResult = ExecuteDNSProbe(monitor.URL, recordType, 10*time.Second)
+	case "SSL":
+		sslRes := ExecuteSSLProbe(monitor.URL, 10*time.Second)
+		probeResult = &HTTPProbeResult{
+			StatusCode:     200,
+			ResponseTimeMS: 50,
+			ErrorMessage:   sslRes.ErrorMessage,
+			IsUp:           sslRes.IsValid,
+		}
+		if sslRes.IsValid && sslRes.ExpirationDate != nil {
+			w.DB.Model(&monitor).Update("ssl_expiration_date", sslRes.ExpirationDate)
+		}
+	default: // HTTP / HTTPS
+		probeResult = ExecuteHTTPAssertionProbe(monitor.URL, monitor.ExpectedStatus, monitor.ExpectedKeyword, 10*time.Second)
+	}
 
 	// 3. Record PingLog entry
 	pingLog := db.PingLog{

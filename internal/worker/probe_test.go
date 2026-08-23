@@ -100,3 +100,50 @@ func TestWorkerEngineProcessHTTPCheck(t *testing.T) {
 		t.Fatalf("Expected Monitor status UP, got %s", updatedMonitor.Status)
 	}
 }
+
+func TestExecuteHTTPAssertionProbe(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("System Status: Operational"))
+	}))
+	defer server.Close()
+
+	// 1. Success case (matching status 200 and keyword "Operational")
+	res := ExecuteHTTPAssertionProbe(server.URL, 200, "Operational", 5*time.Second)
+	if !res.IsUp {
+		t.Fatalf("Expected assertion probe to be UP, got error: %s", res.ErrorMessage)
+	}
+
+	// 2. Keyword mismatch failure case
+	resFail := ExecuteHTTPAssertionProbe(server.URL, 200, "DATABASE_ERROR", 5*time.Second)
+	if resFail.IsUp {
+		t.Fatalf("Expected assertion probe to fail on keyword mismatch, got UP")
+	}
+
+	// 3. Expected status code mismatch failure case
+	resStatusFail := ExecuteHTTPAssertionProbe(server.URL, 201, "Operational", 5*time.Second)
+	if resStatusFail.IsUp {
+		t.Fatalf("Expected assertion probe to fail on status mismatch, got UP")
+	}
+}
+
+func TestExecuteTCPProbe(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer server.Close()
+
+	// Extract socket address host:port
+	addr := server.Listener.Addr().String()
+	res := ExecuteTCPProbe(addr, 5*time.Second)
+	if !res.IsUp {
+		t.Fatalf("Expected TCP probe to %s to be UP, got error: %s", addr, res.ErrorMessage)
+	}
+}
+
+func TestExecuteDNSProbe(t *testing.T) {
+	res := ExecuteDNSProbe("google.com", "A", 5*time.Second)
+	if !res.IsUp {
+		t.Fatalf("Expected DNS lookup for google.com to be UP, got error: %s", res.ErrorMessage)
+	}
+}
