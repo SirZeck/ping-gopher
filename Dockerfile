@@ -1,6 +1,8 @@
 # Stage 1: Build the Go binary using Go 1.22 builder image
 FROM golang:1.22-alpine AS builder
 
+ENV GOTOOLCHAIN=auto
+
 WORKDIR /app
 
 # Install git and ca-certificates
