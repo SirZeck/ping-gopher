@@ -25,4 +25,3 @@ require (
 	modernc.org/sqlite v1.23.1 // indirect
 )
 
-replace github.com/adit/gopher-queue => ../gopher-queue

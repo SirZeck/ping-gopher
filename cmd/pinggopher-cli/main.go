@@ -7,17 +7,34 @@ import (
 	"os"
 	"text/tabwriter"
 	"time"
-
-	"github.com/pinggopher/ping-gopher/internal/db"
 )
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 const cliBanner = `
 ==================================================
   PingGopher CLI v%s — Uptime Monitoring Control
 ==================================================
 `
+
+type User struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+}
+
+type Monitor struct {
+	ID                   string `json:"id"`
+	Name                 string `json:"name"`
+	URL                  string `json:"url"`
+	Status               string `json:"status"`
+	CheckIntervalSeconds int    `json:"check_interval_seconds"`
+}
+
+type PingLog struct {
+	StatusCode     int       `json:"status_code"`
+	ResponseTimeMS int       `json:"response_time_ms"`
+	CreatedAt      time.Time `json:"created_at"`
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -92,8 +109,8 @@ func handleSignup(args []string) {
 	}
 
 	var authData struct {
-		Token string  `json:"token"`
-		User  db.User `json:"user"`
+		Token string `json:"token"`
+		User  User   `json:"user"`
 	}
 	if err := json.Unmarshal(env.Data, &authData); err != nil {
 		fmt.Printf("[ERROR] Failed to parse auth response: %v\n", err)
@@ -140,8 +157,8 @@ func handleLogin(args []string) {
 	}
 
 	var authData struct {
-		Token string  `json:"token"`
-		User  db.User `json:"user"`
+		Token string `json:"token"`
+		User  User   `json:"user"`
 	}
 	if err := json.Unmarshal(env.Data, &authData); err != nil {
 		fmt.Printf("[ERROR] Failed to parse auth response: %v\n", err)
@@ -233,7 +250,7 @@ func handleMonitor(args []string) {
 			os.Exit(1)
 		}
 
-		var monitors []db.Monitor
+		var monitors []Monitor
 		json.Unmarshal(env.Data, &monitors)
 
 		if len(monitors) == 0 {
@@ -245,7 +262,11 @@ func handleMonitor(args []string) {
 		fmt.Fprintln(w, "ID\tNAME\tTARGET URL\tSTATUS\tINTERVAL")
 		fmt.Fprintln(w, "--\t----\t----------\t------\t--------")
 		for _, m := range monitors {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%ds\n", m.ID.String()[:8], m.Name, m.URL, m.Status, m.CheckIntervalSeconds)
+			idDisplay := m.ID
+			if len(m.ID) > 8 {
+				idDisplay = m.ID[:8]
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%ds\n", idDisplay, m.Name, m.URL, m.Status, m.CheckIntervalSeconds)
 		}
 		w.Flush()
 
@@ -274,9 +295,9 @@ func handleMonitor(args []string) {
 			os.Exit(1)
 		}
 
-		var created db.Monitor
+		var created Monitor
 		json.Unmarshal(env.Data, &created)
-		fmt.Printf("[SUCCESS] Created target monitor '%s' (ID: %s)\n", created.Name, created.ID.String())
+		fmt.Printf("[SUCCESS] Created target monitor '%s' (ID: %s)\n", created.Name, created.ID)
 
 	case "delete":
 		fs := flag.NewFlagSet("delete", flag.ExitOnError)
@@ -328,7 +349,7 @@ func handleLogs(args []string) {
 		os.Exit(1)
 	}
 
-	var logs []db.PingLog
+	var logs []PingLog
 	json.Unmarshal(env.Data, &logs)
 
 	if len(logs) == 0 {
