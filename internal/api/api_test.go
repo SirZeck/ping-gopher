@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/SirZeck/ping-gopher/internal/config"
 	"github.com/SirZeck/ping-gopher/internal/db"
 )
@@ -280,4 +281,96 @@ func TestUpdateMonitorSSRFAndEnumValidation(t *testing.T) {
 		t.Fatalf("Expected 400 Bad Request for invalid status enum, got %d", resp.StatusCode)
 	}
 	resp.Body.Close()
+}
+
+func TestCreateMonitorWebhookSSRFValidation(t *testing.T) {
+	ts, _, cleanup := setupTestAPI(t)
+	defer cleanup()
+
+	client := &http.Client{}
+
+	signupBody := bytes.NewBufferString(`{"email":"webhook_ssrf@pinggopher.com","password":"Password123!"}`)
+	resp, err := client.Post(ts.URL+"/v1/auth/signup", "application/json", signupBody)
+	if err != nil {
+		t.Fatalf("Signup failed: %v", err)
+	}
+
+	var authEnv struct {
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}
+	json.NewDecoder(resp.Body).Decode(&authEnv)
+	token := authEnv.Data.Token
+	resp.Body.Close()
+
+	// Prohibited webhook URL
+	createBody := bytes.NewBufferString(`{"name":"Bad Webhook","url":"https://example.com","webhook_url":"http://169.254.169.254/latest/meta-data"}`)
+	req, _ := http.NewRequest("POST", ts.URL+"/v1/monitors", createBody)
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("Create monitor request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Expected 400 Bad Request for SSRF webhook creation, got %d", resp.StatusCode)
+	}
+}
+
+func TestPublicStatusIsPublicFiltering(t *testing.T) {
+	ts, handler, cleanup := setupTestAPI(t)
+	defer cleanup()
+
+	client := &http.Client{}
+
+	signupBody := bytes.NewBufferString(`{"email":"is_public_test@pinggopher.com","password":"Password123!"}`)
+	resp, err := client.Post(ts.URL+"/v1/auth/signup", "application/json", signupBody)
+	if err != nil {
+		t.Fatalf("Signup failed: %v", err)
+	}
+
+	var authEnv struct {
+		Data struct {
+			Token string `json:"token"`
+			User  struct {
+				ID uuid.UUID `json:"id"`
+			} `json:"user"`
+		} `json:"data"`
+	}
+	json.NewDecoder(resp.Body).Decode(&authEnv)
+	userUUID := authEnv.Data.User.ID
+	resp.Body.Close()
+
+	// Create private monitor (is_public = false)
+	isPublicFalse := false
+	monPrivate := db.Monitor{
+		UserID:               userUUID,
+		Name:                 "Secret Internal Service",
+		URL:                  "https://secret.example.com",
+		CheckIntervalSeconds: 60,
+		Status:               db.StatusUp,
+		IsPublic:             isPublicFalse,
+	}
+	handler.DB.Create(&monPrivate)
+
+	// Query public status page
+	resp, err = http.Get(ts.URL + "/v1/status/public?tenant_id=" + userUUID.String())
+	if err != nil {
+		t.Fatalf("Get public status failed: %v", err)
+	}
+
+	var statusEnv struct {
+		Data struct {
+			Monitors []PublicMonitorCard `json:"monitors"`
+		} `json:"data"`
+	}
+	json.NewDecoder(resp.Body).Decode(&statusEnv)
+	resp.Body.Close()
+
+	if len(statusEnv.Data.Monitors) != 0 {
+		t.Fatalf("Expected 0 public monitors for private target, got %d", len(statusEnv.Data.Monitors))
+	}
 }

@@ -16,6 +16,7 @@ type CreateMonitorRequest struct {
 	URL                  string `json:"url"`
 	CheckIntervalSeconds int    `json:"check_interval_seconds"`
 	WebhookURL           string `json:"webhook_url,omitempty"`
+	IsPublic             *bool  `json:"is_public,omitempty"`
 }
 
 type UpdateMonitorRequest struct {
@@ -24,6 +25,7 @@ type UpdateMonitorRequest struct {
 	CheckIntervalSeconds int              `json:"check_interval_seconds,omitempty"`
 	Status               db.MonitorStatus `json:"status,omitempty"`
 	WebhookURL           string           `json:"webhook_url,omitempty"`
+	IsPublic             *bool            `json:"is_public,omitempty"`
 }
 
 // CreateMonitorHandler creates a new monitor target for the authenticated tenant.
@@ -50,8 +52,20 @@ func (h *APIHandler) CreateMonitorHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if req.WebhookURL != "" {
+		if err := worker.ValidateSafeURL(req.WebhookURL); err != nil {
+			JSONError(w, http.StatusBadRequest, fmt.Sprintf("Prohibited webhook URL: %v", err))
+			return
+		}
+	}
+
 	if req.CheckIntervalSeconds <= 0 {
 		req.CheckIntervalSeconds = 60
+	}
+
+	isPublic := true
+	if req.IsPublic != nil {
+		isPublic = *req.IsPublic
 	}
 
 	monitor := db.Monitor{
@@ -60,6 +74,7 @@ func (h *APIHandler) CreateMonitorHandler(w http.ResponseWriter, r *http.Request
 		URL:                  req.URL,
 		CheckIntervalSeconds: req.CheckIntervalSeconds,
 		WebhookURL:           req.WebhookURL,
+		IsPublic:             isPublic,
 		Status:               db.StatusUp, // Enabled by default on creation
 	}
 
@@ -165,6 +180,9 @@ func (h *APIHandler) UpdateMonitorHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 		monitor.Status = req.Status
+	}
+	if req.IsPublic != nil {
+		monitor.IsPublic = *req.IsPublic
 	}
 
 	if err := h.DB.Save(&monitor).Error; err != nil {

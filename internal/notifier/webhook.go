@@ -22,6 +22,7 @@ type WebhookPayload struct {
 }
 
 var sharedWebhookTransport = &http.Transport{
+	DialContext:         validator.SafeDialContext(10 * time.Second),
 	MaxIdleConns:        100,
 	MaxIdleConnsPerHost: 20,
 	IdleConnTimeout:     90 * time.Second,

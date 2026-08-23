@@ -30,6 +30,14 @@ func main() {
 	fmt.Printf(banner, cfg.Role)
 	fmt.Printf("[INFO] Initializing PingGopher (Role: %s, DB: %s)\n", cfg.Role, cfg.DatabasePath)
 
+	if cfg.JWTSecret == "pinggopher-secret-key-change-in-prod" {
+		if os.Getenv("ENVIRONMENT") == "production" {
+			fmt.Println("[FATAL] Default insecure JWT secret detected in production environment! Set JWT_SECRET environment variable.")
+			os.Exit(1)
+		}
+		fmt.Println("[WARN] Using default JWT secret key. Change JWT_SECRET for production deployments.")
+	}
+
 	// Initialize Database Connection & Migrations
 	database, err := db.InitDB(cfg.DatabasePath)
 	if err != nil {
@@ -114,7 +122,7 @@ func startAPIRole(cfg *config.Config, handler *api.APIHandler) *http.Server {
 }
 
 func startWorkerRole(cfg *config.Config, engine *worker.WorkerEngine) {
-	fmt.Printf("[ROLE: WORKER] Probe execution worker engine ready (Redis target: %s)\n", cfg.RedisAddr)
+	fmt.Println("[ROLE: WORKER] In-process probe execution worker engine ready (Pure Go modular monolith architecture)")
 }
 
 func startSchedulerRole(cfg *config.Config, sched *scheduler.Scheduler) {

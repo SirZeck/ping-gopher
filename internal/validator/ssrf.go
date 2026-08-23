@@ -1,12 +1,14 @@
 package validator
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 var (
@@ -14,6 +16,56 @@ var (
 	ErrEmptyHost       = errors.New("invalid URL: missing host")
 	ErrSSRFForbiddenIP = errors.New("prohibited target IP address: private, loopback, or cloud metadata endpoints are not allowed")
 )
+
+// SafeDialContext returns a custom DialContext function that resolves DNS and validates IP blocklists at connect time to prevent TOCTOU DNS rebinding SSRF attacks.
+func SafeDialContext(timeout time.Duration) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid socket address '%s': %w", addr, err)
+		}
+
+		allowLoopback := os.Getenv("PINGGOPHER_ALLOW_LOOPBACK") == "true"
+
+		// Parse target IP directly if given
+		ip := net.ParseIP(host)
+		if ip != nil {
+			if !allowLoopback && isPrivateIP(ip) {
+				return nil, fmt.Errorf("%w: direct dial to internal IP %s blocked", ErrSSRFForbiddenIP, ip.String())
+			}
+			dialer := &net.Dialer{Timeout: timeout}
+			return dialer.DialContext(ctx, network, addr)
+		}
+
+		// Resolve DNS host IP at exact connect time
+		ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve target host '%s': %w", host, err)
+		}
+
+		var targetIP net.IP
+		for _, resolvedIP := range ips {
+			if allowLoopback && resolvedIP.IsLoopback() {
+				targetIP = resolvedIP
+				break
+			}
+			if isPrivateIP(resolvedIP) {
+				return nil, fmt.Errorf("%w: host '%s' resolved to internal IP '%s' at connect time", ErrSSRFForbiddenIP, host, resolvedIP.String())
+			}
+			if targetIP == nil {
+				targetIP = resolvedIP
+			}
+		}
+
+		if targetIP == nil {
+			return nil, fmt.Errorf("no valid IP address found for host '%s'", host)
+		}
+
+		dialer := &net.Dialer{Timeout: timeout}
+		targetAddr := net.JoinHostPort(targetIP.String(), port)
+		return dialer.DialContext(ctx, network, targetAddr)
+	}
+}
 
 // privateIPBlocks contains parsed IP CIDR networks that synthetic probes must not dial.
 var privateIPBlocks []*net.IPNet

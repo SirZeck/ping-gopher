@@ -3,8 +3,11 @@ package api
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/SirZeck/ping-gopher/internal/auth"
@@ -13,9 +16,54 @@ import (
 type contextKey string
 
 const (
-	UserIDContextKey contextKey = "user_id"
+	UserIDContextKey    contextKey = "user_id"
 	UserEmailContextKey contextKey = "user_email"
 )
+
+type rateLimiter struct {
+	mu       sync.Mutex
+	requests map[string][]time.Time
+}
+
+var globalAuthRateLimiter = &rateLimiter{
+	requests: make(map[string][]time.Time),
+}
+
+// RateLimitMiddleware enforces a sliding-window rate limit (requestsPerSec) per client IP address.
+func RateLimitMiddleware(requestsPerSec int, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		clientIP := r.RemoteAddr
+		if host, _, err := net.SplitHostPort(clientIP); err == nil {
+			clientIP = host
+		}
+
+		now := time.Now()
+		cutoff := now.Add(-1 * time.Second)
+
+		globalAuthRateLimiter.mu.Lock()
+		times := globalAuthRateLimiter.requests[clientIP]
+
+		validTimes := make([]time.Time, 0, len(times))
+		for _, t := range times {
+			if t.After(cutoff) {
+				validTimes = append(validTimes, t)
+			}
+		}
+
+		if len(validTimes) >= requestsPerSec {
+			globalAuthRateLimiter.requests[clientIP] = validTimes
+			globalAuthRateLimiter.mu.Unlock()
+			JSONError(w, http.StatusTooManyRequests, "Rate limit exceeded. Please slow down your requests.")
+			return
+		}
+
+		validTimes = append(validTimes, now)
+		globalAuthRateLimiter.requests[clientIP] = validTimes
+		globalAuthRateLimiter.mu.Unlock()
+
+		next.ServeHTTP(w, r)
+	}
+}
 
 // CORSMiddleware enables Cross-Origin Resource Sharing headers for Web Dashboard requests.
 func CORSMiddleware(next http.Handler) http.Handler {

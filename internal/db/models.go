@@ -56,6 +56,7 @@ type Monitor struct {
 	Status               MonitorStatus `gorm:"type:varchar(50);default:'PAUSED';not null" json:"status"`
 	SSLExpirationDate    *time.Time    `gorm:"index" json:"ssl_expiration_date,omitempty"`
 	WebhookURL           string        `gorm:"type:text" json:"webhook_url,omitempty"`
+	IsPublic             bool          `gorm:"default:true;not null" json:"is_public"`
 	CreatedAt            time.Time     `json:"created_at"`
 	UpdatedAt            time.Time     `json:"updated_at"`
 

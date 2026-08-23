@@ -18,9 +18,9 @@ func (h *APIHandler) SetupRouter() http.Handler {
 		})
 	})
 
-	// 2. Authentication endpoints (Public)
-	mux.HandleFunc("POST /v1/auth/signup", h.SignupHandler)
-	mux.HandleFunc("POST /v1/auth/login", h.LoginHandler)
+	// 2. Authentication endpoints (Public with Rate Limiting)
+	mux.HandleFunc("POST /v1/auth/signup", RateLimitMiddleware(5, h.SignupHandler))
+	mux.HandleFunc("POST /v1/auth/login", RateLimitMiddleware(5, h.LoginHandler))
 
 	// 3. Public Status Page Data Endpoint
 	mux.HandleFunc("GET /v1/status/public", h.PublicStatusHandler)

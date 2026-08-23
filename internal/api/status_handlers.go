@@ -53,7 +53,7 @@ func (h *APIHandler) PublicStatusHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	var monitors []db.Monitor
-	query := h.DB.Where("status != ?", db.StatusPaused)
+	query := h.DB.Where("status != ? AND is_public = ?", db.StatusPaused, true)
 	if targetUserID != uuid.Nil {
 		query = query.Where("user_id = ?", targetUserID)
 	}

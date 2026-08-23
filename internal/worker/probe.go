@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/SirZeck/ping-gopher/internal/validator"
 )
 
 // HTTPProbeResult contains the metrics collected from an HTTP/HTTPS request probe.
@@ -27,6 +29,7 @@ type SSLProbeResult struct {
 }
 
 var sharedHTTPTransport = &http.Transport{
+	DialContext:         validator.SafeDialContext(10 * time.Second),
 	MaxIdleConns:        100,
 	MaxIdleConnsPerHost: 20,
 	IdleConnTimeout:     90 * time.Second,
