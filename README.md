@@ -205,6 +205,23 @@ Configurations can be set via command-line flags or environment variables:
 
 ---
 
+## 🛡️ Security, Auditing & Quality Assurance
+
+PingGopher enforces a rigorous **Pre-Launch Code Auditing & Technical Remediation** system. Every major release undergoes automated and manual security reviews covering Server-Side Request Forgery (SSRF) defense, multi-tenant isolation, database WAL concurrency, memory DoS protection, and graceful process lifecycles.
+
+### 📄 Versioned Audit & Remediation Records
+- 🛡️ **Audit Report**: [`docs/audit_report_v1.md`](docs/audit_report_v1.md) — Comprehensive pre-launch security & architecture audit.
+- 🛠️ **Remediation Report**: [`docs/remediation_report_v1.2.1.md`](docs/remediation_report_v1.2.1.md) — Itemized technical remediation breakdown for all 21 audit findings (v1.2.1).
+
+### ⚡ Engineering Standards & Hardening Guidelines
+- **SSRF Defense Engine**: All outgoing probe targets and webhooks are validated against private, loopback, and cloud IMDS CIDRs (`169.254.169.254`).
+- **SQLite Concurrency & WAL**: DSN parameters enable Write-Ahead Logging (`WAL` mode), 5000ms busy timeouts, and `SetMaxOpenConns(1)` connection pool limits to eliminate database lock panics.
+- **Multi-Tenant Data Isolation**: All API endpoints and public status pages query data strictly scoped to tenant IDs.
+- **Graceful Lifecycle Shutdown**: HTTP servers and scheduler loops listen for OS signals (`SIGINT`/`SIGTERM`) and drain connections cleanly via `server.Shutdown(ctx)`.
+- **Container Hardening**: Docker builds run under a non-privileged system user (`USER appuser`) with native container `HEALTHCHECK` probes.
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please check our [Contributing Guide](CONTRIBUTING.md) for setup steps and pull request guidelines.
