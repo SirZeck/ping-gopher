@@ -14,6 +14,7 @@ import (
 )
 
 func setupTestAPI(t *testing.T) (*httptest.Server, *APIHandler, func()) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
 	testDBPath := filepath.Join(t.TempDir(), "test_api.db")
 
 	database, err := db.InitDB(testDBPath)
@@ -148,7 +149,7 @@ func TestMonitorCRUDAPI(t *testing.T) {
 
 	createPayload := map[string]interface{}{
 		"name":                   "Production API Target",
-		"url":                    "https://api.example.com/health",
+		"url":                    "https://httpbin.org/status/200",
 		"check_interval_seconds": 30,
 	}
 	body, _ = json.Marshal(createPayload)

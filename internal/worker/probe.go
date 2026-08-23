@@ -3,6 +3,7 @@ package worker
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"time"
@@ -25,10 +26,19 @@ type SSLProbeResult struct {
 	IsValid        bool
 }
 
-// ExecuteHTTPProbe performs a synthetic HTTP/HTTPS probe against targetURL with timeout.
+// ExecuteHTTPProbe performs a synthetic HTTP/HTTPS probe against targetURL with timeout and SSRF protection.
 func ExecuteHTTPProbe(targetURL string, timeout time.Duration) *HTTPProbeResult {
 	if timeout <= 0 {
 		timeout = 10 * time.Second
+	}
+
+	if err := ValidateSafeURL(targetURL); err != nil {
+		return &HTTPProbeResult{
+			StatusCode:     0,
+			ResponseTimeMS: 0,
+			ErrorMessage:   fmt.Sprintf("SSRF protection blocked probe: %v", err),
+			IsUp:           false,
+		}
 	}
 
 	client := &http.Client{
@@ -73,6 +83,13 @@ func ExecuteSSLProbe(targetURL string, timeout time.Duration) *SSLProbeResult {
 		timeout = 10 * time.Second
 	}
 
+	if err := ValidateSafeURL(targetURL); err != nil {
+		return &SSLProbeResult{
+			ErrorMessage: fmt.Sprintf("SSRF protection blocked SSL probe: %v", err),
+			IsValid:      false,
+		}
+	}
+
 	parsedURL, err := url.Parse(targetURL)
 	if err != nil {
 		return &SSLProbeResult{
@@ -90,6 +107,9 @@ func ExecuteSSLProbe(targetURL string, timeout time.Duration) *SSLProbeResult {
 	targetAddr := fmt.Sprintf("%s:%s", host, port)
 
 	dialer := &tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: timeout,
+		},
 		Config: &tls.Config{
 			InsecureSkipVerify: false, // Enforce strict TLS validation
 			ServerName:         host,

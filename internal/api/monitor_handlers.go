@@ -2,11 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/SirZeck/ping-gopher/internal/db"
+	"github.com/SirZeck/ping-gopher/internal/worker"
 )
 
 type CreateMonitorRequest struct {
@@ -38,6 +40,11 @@ func (h *APIHandler) CreateMonitorHandler(w http.ResponseWriter, r *http.Request
 
 	if req.Name == "" || req.URL == "" {
 		JSONError(w, http.StatusBadRequest, "Monitor name and URL are required")
+		return
+	}
+
+	if err := worker.ValidateSafeURL(req.URL); err != nil {
+		JSONError(w, http.StatusBadRequest, fmt.Sprintf("Prohibited monitor URL: %v", err))
 		return
 	}
 

@@ -11,6 +11,7 @@ import (
 )
 
 func TestExecuteHTTPProbeSuccess(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -28,6 +29,7 @@ func TestExecuteHTTPProbeSuccess(t *testing.T) {
 }
 
 func TestExecuteHTTPProbeFailure(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -44,6 +46,7 @@ func TestExecuteHTTPProbeFailure(t *testing.T) {
 }
 
 func TestWorkerEngineProcessHTTPCheck(t *testing.T) {
+	t.Setenv("PINGGOPHER_ALLOW_LOOPBACK", "true")
 	testDBPath := filepath.Join(t.TempDir(), "test_worker.db")
 
 	database, err := db.InitDB(testDBPath)
